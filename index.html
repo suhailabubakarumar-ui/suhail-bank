@@ -215,45 +215,25 @@ function openModal(html){
  $("modal").classList.remove("hidden");
 }
 
-async function createProfileAndAccount(name,phone,email,pin){
- if(!currentUser)throw new Error("No authenticated user.");
+async function createProfileAndAccount(name,phone,pin){
+  if(!currentUser)throw new Error("No authenticated user.");
 
- const {error:profileError}=await supabaseClient.from("users").upsert({
-   id:currentUser.id,
-   full_name:name.trim(),
-   phone:phone.trim(),
-   email:(currentUser.email||email).trim(),
-   transaction_pin:pin
- });
- if(profileError)throw profileError;
+  const {data,error}=await supabaseClient.rpc("create_demo_account",{
+    p_full_name:name.trim(),
+    p_phone:phone.trim(),
+    p_transaction_pin:pin
+  });
 
- const {data:existing,error:findError}=await supabaseClient
-   .from("accounts")
-   .select("id,user_id,account_number,balance")
-   .eq("user_id",currentUser.id)
-   .maybeSingle();
+  if(error)throw error;
 
- if(findError)throw findError;
- if(existing){currentAccount=existing;return existing;}
+  const result=Array.isArray(data)?(data[0]||{}):(data||{});
 
- let created=null,lastError=null;
+  await loadUserData();
 
- for(let i=0;i<5;i++){
-   const accountNumber="30"+Math.floor(100000000+Math.random()*900000000);
-
-   const {data,error}=await supabaseClient.from("accounts").insert({
-     user_id:currentUser.id,
-     account_number:accountNumber,
-     balance:0
-   }).select("id,user_id,account_number,balance").single();
-
-   if(!error){created=data;break;}
-   lastError=error;
- }
-
- if(!created)throw lastError||new Error("Could not create demo account.");
- currentAccount=created;
- return created;
+  return {
+    ...result,
+    account_number:result.account_number||currentAccount?.account_number
+  };
 }
 
 async function loadUserData(){
@@ -336,7 +316,7 @@ $("registerForm").addEventListener("submit",async e=>{
    }
 
    currentUser=data.user;
-   await createProfileAndAccount(name,phone,email,pin);
+   await createProfileAndAccount(name,phone,pin);
    await startApp();
 
  }catch(err){
@@ -646,3 +626,63 @@ async function doChangePin(){
  const oldPin=$("oldPin").value;
  const newPin=$("newPin").value;
  const confirm=$("confirmPin").value;
+
+ if(!validPin(oldPin)||!validPin(newPin)){
+   alert("PIN must be exactly 4 digits.");return;
+ }
+ if(newPin!==confirm){
+   alert("New PINs do not match.");return;
+ }
+
+ try{
+   const {error}=await supabaseClient.rpc("change_transaction_pin",{
+     p_old_pin:oldPin,
+     p_new_pin:newPin
+   });
+
+   if(error)throw error;
+
+   if(currentProfile)currentProfile.transaction_pin=newPin;
+
+   closeModal();
+   alert("Transaction PIN changed successfully.");
+
+ }catch(e){
+   alert("PIN change failed: "+e.message);
+ }
+}
+
+function showReceipt(r){
+ openModal(`
+ <div class="receipt" id="printReceipt">
+   <div class="logo">Suhail Bank</div>
+   <p>Digital Banking Demo</p>
+   <span class="status">Successful</span>
+
+   <div class="receipt-line"><b>Type</b><span>${escapeHtml(r.type)}</span></div>
+   <div class="receipt-line"><b>Amount</b><span>${money(r.amount)}</span></div>
+   <div class="receipt-line"><b>Party</b><span>${escapeHtml(r.partyName)}</span></div>
+   <div class="receipt-line"><b>Account</b><span>${escapeHtml(r.partyAccount)}</span></div>
+   <div class="receipt-line"><b>Date</b><span>${new Date().toLocaleString()}</span></div>
+
+   <button onclick="window.print()">Print Receipt</button>
+   <button class="secondary" onclick="closeModal()">Close</button>
+ </div>
+ `);
+}
+
+async function logout(){
+ await supabaseClient.auth.signOut();
+ currentUser=null;
+ currentProfile=null;
+ currentAccount=null;
+
+ $("appPage").classList.add("hidden");
+ $("authPage").classList.remove("hidden");
+ showLogin();
+}
+
+checkSession();
+</script>
+</body>
+</html>
