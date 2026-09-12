@@ -3,114 +3,646 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suhail Bank - Digital Banking Demo</title>
+<meta name="theme-color" content="#0b67b2">
+<title>Suhail Bank — Digital Banking Demo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}body{background:#f3f6fa;color:#222}button{cursor:pointer}.hidden{display:none!important}.auth-container{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}.auth-box{background:#fff;width:100%;max-width:420px;padding:30px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08)}.logo{text-align:center;margin-bottom:25px}.logo h1{color:#075ea8;font-size:30px}.logo p{color:#777;margin-top:5px;font-size:14px}.form-group{margin-bottom:15px}.form-group label{display:block;margin-bottom:7px;font-weight:bold;font-size:14px}input{width:100%;padding:13px;border:1px solid #d5dce5;border-radius:9px;outline:none;font-size:15px}input:focus{border-color:#075ea8}.primary-btn{width:100%;padding:14px;border:none;border-radius:9px;background:#075ea8;color:#fff;font-size:16px;font-weight:bold;margin-top:5px}.secondary-btn{width:100%;padding:12px;border:none;border-radius:9px;background:#eaf2f9;color:#075ea8;font-weight:bold;margin-top:10px}.link-btn{border:none;background:none;color:#075ea8;font-weight:bold;margin-top:15px;width:100%}.message{padding:11px;border-radius:8px;margin-bottom:15px;font-size:14px;display:none}.error{background:#ffe8e8;color:#b00020}.success{background:#e5f8eb;color:#087f3d}#app{min-height:100vh}.topbar{background:#075ea8;color:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}.topbar h2{font-size:21px}.logout-btn{background:#fff;color:#075ea8;border:none;padding:8px 13px;border-radius:7px;font-weight:bold}.container{max-width:1000px;margin:auto;padding:20px}.welcome{margin-bottom:20px}.welcome h2{font-size:24px}.welcome p{color:#666;margin-top:5px}.balance-card{background:linear-gradient(135deg,#075ea8,#0c82c6);color:#fff;padding:25px;border-radius:18px;margin-bottom:20px;box-shadow:0 8px 25px rgba(7,94,168,.2)}.balance-card p{opacity:.9}.balance{font-size:34px;font-weight:bold;margin:10px 0}.account-number{font-size:15px}.copy-btn{margin-top:10px;background:#fff;color:#075ea8;border:none;padding:8px 12px;border-radius:7px;font-weight:bold}.services{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:25px}.service-btn{background:#fff;border:none;padding:20px 10px;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.06);color:#075ea8;font-weight:bold}.section{background:#fff;padding:22px;border-radius:15px;box-shadow:0 3px 15px rgba(0,0,0,.05);margin-bottom:20px}.section h3{margin-bottom:18px;color:#075ea8}.info-row{display:flex;justify-content:space-between;gap:15px;padding:12px 0;border-bottom:1px solid #eee}.info-label{color:#777}.transaction{padding:15px 0;border-bottom:1px solid #eee}.transaction:last-child{border-bottom:none}.tx-top{display:flex;justify-content:space-between;gap:12px}.tx-type{font-weight:bold}.tx-date{color:#888;font-size:12px;margin-top:4px}.tx-party{font-size:13px;color:#555;margin-top:7px;line-height:1.5}.old-tx{color:#999;font-style:italic}.tx-receipt-btn{margin-top:10px;border:0;background:#eaf2f9;color:#075ea8;border-radius:7px;padding:7px 10px;font-weight:bold;font-size:12px}.tx-amount{font-weight:bold;white-space:nowrap}.positive{color:#087f3d}.negative{color:#c62828}.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;justify-content:center;align-items:center;padding:20px;z-index:100}.modal-box{background:#fff;width:100%;max-width:420px;padding:25px;border-radius:15px}.modal-box h3{color:#075ea8;margin-bottom:15px}.receipt-row{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid #eee}.receipt-row span{color:#777}.receipt-row strong{text-align:right;word-break:break-word}.empty{color:#777;padding:10px 0}.demo-note{font-size:12px;color:#777;text-align:center;margin-top:15px}@media(max-width:500px){.auth-box{padding:22px}.container{padding:15px}.balance{font-size:28px}.tx-top{align-items:flex-start}.info-row{font-size:14px}}
-.receipt-head{text-align:center;margin-bottom:8px}.receipt-head h3{margin-bottom:4px;font-size:24px}.receipt-head p{color:#777;font-size:13px}.receipt-success{color:#087f3d}.receipt-note{text-align:center;color:#888;font-size:11px;margin:15px 0 5px}@media print{html,body{background:#fff!important}body>*:not(#receiptModal){display:none!important}.modal{position:static!important;background:#fff!important;display:block!important;padding:0!important}.modal-box{box-shadow:none!important;border-radius:0!important;max-width:520px!important;width:100%!important;margin:0 auto!important}.modal-box button{display:none!important}.receipt-row{padding:12px 0}.receipt-note{margin-top:18px}}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef4f9;color:#17202a}
+.hidden{display:none!important}
+.page{min-height:100vh;padding:24px 14px;display:flex;align-items:center;justify-content:center}
+.card{width:100%;max-width:470px;background:#fff;border-radius:24px;padding:28px;box-shadow:0 12px 35px rgba(0,0,0,.10)}
+.brand{text-align:center;color:#0968b4;font-size:38px;font-weight:800;margin:0 0 4px}
+.subtitle{text-align:center;color:#737b84;font-size:18px;margin:0 0 24px}
+label{display:block;font-weight:700;margin:15px 0 7px}
+input{width:100%;padding:15px;border:1px solid #d3dae1;border-radius:13px;font-size:16px;outline:none}
+input:focus{border-color:#0968b4}
+button{width:100%;border:0;border-radius:13px;padding:15px;margin-top:16px;background:#0968b4;color:white;font-size:17px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.6}
+button.secondary{background:#e9f1f8;color:#0968b4}
+button.danger{background:#c62828}
+.link{color:#0968b4;text-align:center;font-weight:700;margin-top:18px;cursor:pointer}
+.msg{padding:13px 15px;border-radius:12px;margin:15px 0;font-weight:600;display:none}
+.msg.error{display:block;background:#fde8ea;color:#a51f35}
+.msg.success{display:block;background:#e7f7ec;color:#19713a}
+.msg.info{display:block;background:#e8f2fb;color:#155b8c}
+.topbar{width:100%;max-width:900px;margin:0 auto 15px;display:flex;justify-content:space-between;align-items:center}
+.topbar h2{margin:0;color:#0968b4}
+.logout{width:auto;margin:0;padding:10px 15px}
+.dashboard{width:100%;max-width:900px;margin:auto}
+.balance{background:#0968b4;color:#fff;border-radius:22px;padding:25px;margin-bottom:18px}
+.balance small{opacity:.9}
+.balance h1{font-size:38px;margin:8px 0}
+.account{font-size:14px;opacity:.95}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.service{background:#fff;border:0;border-radius:18px;padding:20px;box-shadow:0 5px 18px rgba(0,0,0,.07);cursor:pointer;color:#17202a}
+.service b{display:block;margin-top:8px}
+.service span{font-size:28px}
+.panel{background:#fff;border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 5px 18px rgba(0,0,0,.07)}
+.panel h3{margin-top:0}
+.profile-row{padding:9px 0;border-bottom:1px solid #eee}
+.profile-row:last-child{border-bottom:0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}
+.modalbox{background:white;width:100%;max-width:430px;border-radius:22px;padding:24px;max-height:92vh;overflow:auto}
+.receipt{text-align:center}
+.receipt .logo{font-size:30px;font-weight:800;color:#0968b4}
+.receipt-line{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid #eee;text-align:left}
+.status{display:inline-block;margin:14px 0;padding:7px 14px;border-radius:99px;background:#e7f7ec;color:#19713a;font-weight:700}
+.empty{text-align:center;color:#777;padding:15px}
+@media(max-width:520px){
+.card{padding:22px}.brand{font-size:32px}.grid{grid-template-columns:1fr 1fr}.balance h1{font-size:32px}
+}
+@media print{
+body *{visibility:hidden}.modal,.modal *{visibility:visible}.modal{position:absolute;background:#fff}.modalbox{box-shadow:none}
+}
 </style>
 </head>
 <body>
-<div id="loginPage" class="auth-container"><div class="auth-box"><div class="logo"><h1>Suhail Bank</h1><p>Digital Banking Demo</p></div><div id="loginMessage" class="message"></div><div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="Enter your email"></div><div class="form-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div><button class="primary-btn" onclick="login()">Login</button><button class="link-btn" onclick="showRegister()">Create Account</button><button class="link-btn" onclick="showForgotPassword()">Forgot Password?</button><p class="demo-note">Learning/demo project — not a real bank.</p></div></div>
-<div id="registerPage" class="auth-container hidden"><div class="auth-box"><div class="logo"><h1>Suhail Bank</h1><p>Create Demo Account</p></div><div id="registerMessage" class="message"></div><div class="form-group"><label>Full Name</label><input type="text" id="regName" placeholder="Enter full name"></div><div class="form-group"><label>Phone Number</label><input type="tel" id="regPhone" placeholder="Enter phone number"></div><div class="form-group"><label>Email</label><input type="email" id="regEmail" placeholder="Enter email"></div><div class="form-group"><label>Password</label><input type="password" id="regPassword" placeholder="Minimum 6 characters"></div><div class="form-group"><label>4-Digit Transaction PIN</label><input type="password" id="regPin" maxlength="4" inputmode="numeric" placeholder="Example: 1234"></div><button class="primary-btn" onclick="register()">Create Account</button><button class="link-btn" onclick="showLogin()">Already have an account? Login</button></div></div>
-<div id="forgotPage" class="auth-container hidden"><div class="auth-box"><div class="logo"><h1>Suhail Bank</h1><p>Reset Your Password</p></div><div id="forgotMessage" class="message"></div><div class="form-group"><label>Email Address</label><input type="email" id="forgotEmail" placeholder="Enter your registered email"></div><button class="primary-btn" onclick="sendResetLink()">Send Reset Link</button><button class="link-btn" onclick="showLogin()">Back to Login</button></div></div>
-<div id="resetPage" class="auth-container hidden"><div class="auth-box"><div class="logo"><h1>Suhail Bank</h1><p>Create New Password</p></div><div id="resetMessage" class="message"></div><div class="form-group"><label>New Password</label><input type="password" id="newPassword" placeholder="Enter new password"></div><div class="form-group"><label>Confirm Password</label><input type="password" id="confirmPassword" placeholder="Confirm new password"></div><button class="primary-btn" onclick="updatePassword()">Update Password</button></div></div>
-<div id="app" class="hidden"><div class="topbar"><h2>Suhail Bank</h2><button class="logout-btn" onclick="logout()">Logout</button></div><div class="container">
-<div id="homeSection"><div class="welcome"><h2 id="welcomeName">Welcome</h2><p>Manage your demo account</p></div><div class="balance-card"><p>Demo Account Balance</p><div class="balance" id="balanceDisplay">₦0.00</div><div class="account-number">Account Number: <strong id="accountNumberDisplay">---</strong></div><button class="copy-btn" onclick="copyAccountNumber()">Copy Account Number</button></div><div class="services"><button class="service-btn" onclick="showSection('depositSection')">💰<br>Deposit</button><button class="service-btn" onclick="showSection('transferSection')">🔄<br>Transfer</button><button class="service-btn" onclick="showSection('withdrawSection')">💸<br>Withdraw</button><button class="service-btn" onclick="showSection('historySection')">📜<br>History</button><button class="service-btn" onclick="showSection('pinSection')">🔐<br>PIN</button><button class="service-btn" onclick="showSection('profileSection')">👤<br>Profile</button></div></div>
-<div id="depositSection" class="section hidden"><h3>Deposit</h3><div id="depositMessage" class="message"></div><div class="form-group"><label>Amount</label><input type="number" id="depositAmount" min="1" placeholder="Enter amount"></div><button class="primary-btn" onclick="depositMoney()">Deposit</button><button class="secondary-btn" onclick="showSection('homeSection')">Back</button></div>
-<div id="transferSection" class="section hidden"><h3>Transfer Money</h3><div id="transferMessage" class="message"></div><div class="form-group"><label>Receiver Account Number</label><input type="text" id="receiverAccount" maxlength="10" inputmode="numeric" placeholder="Enter receiver account number"></div><div class="form-group"><label>Amount</label><input type="number" id="transferAmount" min="1" placeholder="Enter amount"></div><div class="form-group"><label>Transaction PIN</label><input type="password" id="transferPin" maxlength="4" inputmode="numeric" placeholder="Enter 4-digit PIN"></div><button class="primary-btn" onclick="transferMoney()">Transfer</button><button class="secondary-btn" onclick="showSection('homeSection')">Back</button></div>
-<div id="withdrawSection" class="section hidden"><h3>Withdraw</h3><div id="withdrawMessage" class="message"></div><div class="form-group"><label>Amount</label><input type="number" id="withdrawAmount" min="1" placeholder="Enter amount"></div><div class="form-group"><label>Transaction PIN</label><input type="password" id="withdrawPin" maxlength="4" inputmode="numeric" placeholder="Enter 4-digit PIN"></div><button class="primary-btn" onclick="withdrawMoney()">Withdraw</button><button class="secondary-btn" onclick="showSection('homeSection')">Back</button></div>
-<div id="historySection" class="section hidden"><h3>Transaction History</h3><div id="historyList">Loading...</div><button class="secondary-btn" onclick="showSection('homeSection')">Back</button></div>
-<div id="pinSection" class="section hidden"><h3>Change Transaction PIN</h3><div id="pinMessage" class="message"></div><div class="form-group"><label>Old PIN</label><input type="password" id="oldPin" maxlength="4" inputmode="numeric" placeholder="Old PIN"></div><div class="form-group"><label>New PIN</label><input type="password" id="newPin" maxlength="4" inputmode="numeric" placeholder="New 4-digit PIN"></div><div class="form-group"><label>Confirm New PIN</label><input type="password" id="confirmPin" maxlength="4" inputmode="numeric" placeholder="Confirm new PIN"></div><button class="primary-btn" onclick="changePin()">Change PIN</button><button class="secondary-btn" onclick="showSection('homeSection')">Back</button></div>
-<div id="profileSection" class="section hidden"><h3>My Profile</h3><div class="info-row"><span class="info-label">Full Name</span><strong id="profileName">---</strong></div><div class="info-row"><span class="info-label">Phone</span><strong id="profilePhone">---</strong></div><div class="info-row"><span class="info-label">Email</span><strong id="profileEmail">---</strong></div><div class="info-row"><span class="info-label">Account Number</span><strong id="profileAccount">---</strong></div><button class="secondary-btn" onclick="showSection('homeSection')">Back</button></div>
-</div></div>
-<div id="receiptModal" class="modal hidden"><div class="modal-box receipt-box"><div class="receipt-head"><h3>Suhail Bank</h3><p>Transaction Receipt</p></div><div class="receipt-row"><span>Transaction</span><strong id="receiptType">---</strong></div><div class="receipt-row"><span>Amount</span><strong id="receiptAmount">---</strong></div><div class="receipt-row"><span id="receiptPartyLabel">Details</span><strong id="receiptParty">---</strong></div><div class="receipt-row"><span>My Account</span><strong id="receiptAccount">---</strong></div><div class="receipt-row"><span>Date</span><strong id="receiptDate">---</strong></div><div class="receipt-row"><span>Reference</span><strong id="receiptReference">---</strong></div><div class="receipt-row"><span>Status</span><strong class="receipt-success">Successful</strong></div><p class="receipt-note">Digital Banking Demo — not a real bank.</p><button class="primary-btn" onclick="printReceipt()">🖨️ Print / Save PDF</button><button class="secondary-btn" onclick="closeReceipt()">Close</button></div></div>
+
+<section id="authPage" class="page">
+<div class="card">
+<h1 class="brand">Suhail Bank</h1>
+<p id="authSubtitle" class="subtitle">Create Demo Account</p>
+<div id="authMsg" class="msg"></div>
+
+<form id="registerForm">
+<label>Full Name</label>
+<input id="regName" required autocomplete="name">
+
+<label>Phone Number</label>
+<input id="regPhone" required inputmode="tel" autocomplete="tel">
+
+<label>Email</label>
+<input id="regEmail" type="email" required autocomplete="email">
+
+<label>Password</label>
+<input id="regPassword" type="password" minlength="6" required autocomplete="new-password">
+
+<label>4-Digit Transaction PIN</label>
+<input id="regPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required>
+
+<button id="registerBtn" type="submit">Create Account</button>
+<div class="link" onclick="showLogin()">Already have an account? Login</div>
+</form>
+
+<form id="loginForm" class="hidden">
+<label>Email</label>
+<input id="loginEmail" type="email" required autocomplete="email">
+
+<label>Password</label>
+<input id="loginPassword" type="password" required autocomplete="current-password">
+
+<button type="submit">Login</button>
+<div class="link" onclick="showForgot()">Forgot Password?</div>
+<div class="link" onclick="showRegister()">Create Demo Account</div>
+</form>
+
+<form id="forgotForm" class="hidden">
+<label>Email</label>
+<input id="forgotEmail" type="email" required autocomplete="email">
+<button type="submit">Send Reset Link</button>
+<div class="link" onclick="showLogin()">Back to Login</div>
+</form>
+
+<form id="resetForm" class="hidden">
+<label>New Password</label>
+<input id="newPassword" type="password" minlength="6" required autocomplete="new-password">
+<label>Confirm New Password</label>
+<input id="confirmPassword" type="password" minlength="6" required autocomplete="new-password">
+<button type="submit">Update Password</button>
+</form>
+</div>
+</section>
+
+<section id="appPage" class="page hidden">
+<div class="dashboard">
+<div class="topbar">
+<h2>Suhail Bank</h2>
+<button class="logout" onclick="logout()">Logout</button>
+</div>
+
+<div class="balance">
+<small>Available Demo Balance</small>
+<h1 id="balance">₦0.00</h1>
+<div class="account">Account No: <b id="accountNumber">—</b></div>
+</div>
+
+<div class="panel">
+<h3>Welcome, <span id="welcomeName">User</span> 👋</h3>
+<p>Your digital banking demo is ready.</p>
+</div>
+
+<div class="grid">
+<button class="service" onclick="openDeposit()"><span>💰</span><b>Deposit</b></button>
+<button class="service" onclick="openTransfer()"><span>🔄</span><b>Transfer</b></button>
+<button class="service" onclick="openWithdraw()"><span>💸</span><b>Withdraw</b></button>
+<button class="service" onclick="loadHistory()"><span>📜</span><b>History</b></button>
+<button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
+<button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
+</div>
+
+<div id="contentPanel" class="panel">
+<h3>Recent Transactions</h3>
+<div id="historyList"><div class="empty">No transactions yet.</div></div>
+</div>
+</div>
+</section>
+
+<div id="modal" class="modal hidden" onclick="if(event.target===this)closeModal()">
+<div class="modalbox"><div id="modalContent"></div></div>
+</div>
+
 <script>
 const SUPABASE_URL="https://pqtoiotxgswilizibslo.supabase.co";
 const SUPABASE_KEY="sb_publishable_Pv55p1zoIfJEHZ8CzC3aFQ_HAAkuicj";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let currentUser=null,currentAccount=null;
-function hideAllAuthPages(){['loginPage','registerPage','forgotPage','resetPage'].forEach(id=>document.getElementById(id).classList.add('hidden'))}
-function showLogin(){hideAllAuthPages();document.getElementById('loginPage').classList.remove('hidden');clearMessages()}
-function showRegister(){hideAllAuthPages();document.getElementById('registerPage').classList.remove('hidden');clearMessages()}
-function showForgotPassword(){hideAllAuthPages();document.getElementById('forgotPage').classList.remove('hidden');clearMessages()}
-function showResetPassword(){hideAllAuthPages();document.getElementById('resetPage').classList.remove('hidden');clearMessages()}
-function clearMessages(){document.querySelectorAll('.message').forEach(e=>{e.style.display='none';e.innerText=''})}
-function showMessage(id,text,type){const e=document.getElementById(id);if(!e)return;e.innerText=text;e.className='message '+type;e.style.display='block'}
-async function register(){const name=regName.value.trim(),phone=regPhone.value.trim(),email=regEmail.value.trim(),password=regPassword.value,pin=regPin.value.trim();if(!name||!phone||!email||!password||!pin)return showMessage('registerMessage','Please fill all fields.','error');if(password.length<6)return showMessage('registerMessage','Password must be at least 6 characters.','error');if(!/^\d{4}$/.test(pin))return showMessage('registerMessage','Transaction PIN must be exactly 4 digits.','error');showMessage('registerMessage','Creating account...','success');try{const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:name,phone}}});if(error)return showMessage('registerMessage',error.message,'error');if(!data.user)return showMessage('registerMessage','Account creation failed.','error');currentUser=data.user;if(!data.session)return showMessage('registerMessage','Account created. Please confirm your email if required, then login.','success');const r=await createProfileAndAccount(name,phone,pin);if(!r.success)return showMessage('registerMessage',r.message,'error');showMessage('registerMessage','Account created successfully!','success');setTimeout(startApp,700)}catch(e){showMessage('registerMessage',e.message,'error')}}
-async function createProfileAndAccount(name,phone,pin){try{const {error:pe}=await supabaseClient.from('users').upsert({id:currentUser.id,full_name:name,phone,transaction_pin:pin});if(pe)return{success:false,message:'Profile setup failed: '+pe.message};const {data:a,error:ae}=await supabaseClient.from('accounts').select('id,account_number,balance').eq('user_id',currentUser.id).maybeSingle();if(ae)return{success:false,message:'Account check failed: '+ae.message};if(a){currentAccount=a;return{success:true}}let accountNumber,exists=true;while(exists){accountNumber='30'+Math.floor(10000000+Math.random()*90000000).toString();const {data:c}=await supabaseClient.from('accounts').select('id').eq('account_number',accountNumber).maybeSingle();exists=!!c}const {data:newA,error:ie}=await supabaseClient.from('accounts').insert({user_id:currentUser.id,account_number:accountNumber,balance:0}).select().single();if(ie)return{success:false,message:'Account creation failed: '+ie.message};currentAccount=newA;return{success:true}}catch(e){return{success:false,message:e.message}}}
-async function login(){const email=loginEmail.value.trim(),password=loginPassword.value;if(!email||!password)return showMessage('loginMessage','Please enter email and password.','error');showMessage('loginMessage','Logging in...','success');try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)return showMessage('loginMessage',error.message,'error');currentUser=data.user;const {data:profile,error:pe}=await supabaseClient.from('users').select('full_name,phone,transaction_pin').eq('id',currentUser.id).maybeSingle();if(pe)return showMessage('loginMessage','Profile check failed: '+pe.message,'error');if(!profile)return showMessage('loginMessage','Login successful, but profile setup is incomplete.','error');await loadCurrentAccount();if(!currentAccount)return showMessage('loginMessage','Account record not found.','error');startApp()}catch(e){showMessage('loginMessage',e.message,'error')}}
-function startApp(){hideAllAuthPages();document.getElementById('app').classList.remove('hidden');showSection('homeSection');refreshDashboard()}
-async function loadCurrentAccount(){const {data,error}=await supabaseClient.from('accounts').select('id,account_number,balance').eq('user_id',currentUser.id).maybeSingle();if(error){console.log(error);currentAccount=null;return}currentAccount=data}
-async function refreshDashboard(){if(!currentUser)return;await loadCurrentAccount();const {data:profile}=await supabaseClient.from('users').select('full_name,phone').eq('id',currentUser.id).maybeSingle();if(profile){welcomeName.innerText='Welcome, '+(profile.full_name||'User');profileName.innerText=profile.full_name||'---';profilePhone.innerText=profile.phone||'---';profileEmail.innerText=currentUser.email||'---'}if(currentAccount){const b=Number(currentAccount.balance||0);balanceDisplay.innerText='₦'+b.toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});accountNumberDisplay.innerText=currentAccount.account_number;profileAccount.innerText=currentAccount.account_number}}
-function showSection(id){['homeSection','depositSection','transferSection','withdrawSection','historySection','pinSection','profileSection'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');if(id==='historySection')loadHistory();if(id==='homeSection')refreshDashboard()}
-async function depositMoney(){const amount=Number(depositAmount.value);if(!amount||amount<=0)return showMessage('depositMessage','Enter a valid amount.','error');showMessage('depositMessage','Processing deposit...','success');try{const {data,error}=await supabaseClient.rpc('deposit_money',{p_amount:amount});if(error)return showMessage('depositMessage',error.message,'error');showMessage('depositMessage','Deposit successful.','success');depositAmount.value='';await refreshDashboard();showReceipt({type:'Deposit',amount,partyName:'Demo Deposit',partyAccount:data?.account_number||currentAccount?.account_number,createdAt:data?.created_at,reference:data?.transaction_id})}catch(e){showMessage('depositMessage',e.message,'error')}}
-async function transferMoney(){const receiver=receiverAccount.value.trim(),amount=Number(transferAmount.value),pin=transferPin.value.trim();if(!receiver)return showMessage('transferMessage','Enter receiver account number.','error');if(!/^\d{10}$/.test(receiver))return showMessage('transferMessage','Account number must be 10 digits.','error');if(!amount||amount<=0)return showMessage('transferMessage','Enter a valid amount.','error');if(!/^\d{4}$/.test(pin))return showMessage('transferMessage','Enter your 4-digit transaction PIN.','error');showMessage('transferMessage','Processing transfer...','success');try{const {data,error}=await supabaseClient.rpc('transfer_money',{p_receiver_account_number:receiver,p_amount:amount,p_pin:pin});if(error)return showMessage('transferMessage',error.message,'error');showMessage('transferMessage','Transfer successful.','success');receiverAccount.value='';transferAmount.value='';transferPin.value='';await refreshDashboard();showReceipt({type:'Transfer Sent',amount,partyName:data?.receiver_name||'Receiver',partyAccount:data?.receiver_account_number||receiver,createdAt:data?.created_at,reference:data?.transaction_id})}catch(e){showMessage('transferMessage',e.message,'error')}}
-async function withdrawMoney(){const amount=Number(withdrawAmount.value),pin=withdrawPin.value.trim();if(!amount||amount<=0)return showMessage('withdrawMessage','Enter a valid amount.','error');if(!/^\d{4}$/.test(pin))return showMessage('withdrawMessage','Enter your 4-digit transaction PIN.','error');showMessage('withdrawMessage','Processing withdrawal...','success');try{const {data,error}=await supabaseClient.rpc('withdraw_money',{p_amount:amount,p_pin:pin});if(error)return showMessage('withdrawMessage',error.message,'error');showMessage('withdrawMessage','Withdrawal successful.','success');withdrawAmount.value='';withdrawPin.value='';await refreshDashboard();showReceipt({type:'Withdrawal',amount,partyName:'Demo Withdrawal',partyAccount:data?.account_number||currentAccount?.account_number,createdAt:data?.created_at,reference:data?.transaction_id})}catch(e){showMessage('withdrawMessage',e.message,'error')}}
-async function loadHistory(){
-    if(!currentAccount){historyList.innerHTML='<p class="empty">No account found.</p>';return}
-    historyList.innerHTML='Loading transactions...';
-    const {data,error}=await supabaseClient.from('transactions').select('id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number').eq('account_id',currentAccount.id).order('created_at',{ascending:false}).limit(50);
-    if(error){historyList.innerHTML='<p class="empty">'+escapeHTML(error.message)+'</p>';return}
-    if(!data?.length){historyList.innerHTML='<p class="empty">No transactions yet.</p>';return}
-    historyList.innerHTML='';
-    data.forEach(tx=>{
-        const amount=Number(tx.amount||0),positive=amount>=0;
-        const raw=(tx.transaction_type||'Transaction').toLowerCase();
-        let type=tx.transaction_type||'Transaction';
-        if(raw==='transfer_received'||raw==='transfer received') type='Transfer Received';
-        if(raw==='transfer_sent'||raw==='transfer sent') type='Transfer Sent';
-        if(raw==='withdrawal') type='Withdrawal';
-        if(raw==='deposit') type='Deposit';
-        let partyLabel='Account';
-        if(type==='Transfer Sent') partyLabel='To';
-        else if(type==='Transfer Received') partyLabel='From';
-        const partyName=tx.counterparty_name||'';
-        const partyAccount=tx.counterparty_account_number||'';
-        const details=(partyName||partyAccount)
-          ? '<div class="tx-party"><strong>'+partyLabel+':</strong> '+escapeHTML(partyName||'---')+'<br><strong>Account:</strong> '+escapeHTML(partyAccount||'---')+'</div>'
-          : '<div class="tx-party old-tx">Details were not stored for this older transaction.</div>';
-        const div=document.createElement('div');
-        div.className='transaction';
-        div.innerHTML='<div class="tx-top"><div><div class="tx-type">'+escapeHTML(type)+'</div><div class="tx-date">'+new Date(tx.created_at).toLocaleString()+'</div></div><div class="tx-amount '+(positive?'positive':'negative')+'">'+(positive?'+':'-')+'₦'+Math.abs(amount).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2})+'</div></div>'+details+'<button class="tx-receipt-btn" type="button">View Receipt</button>';
-        div.querySelector('.tx-receipt-btn').addEventListener('click',()=>showReceipt({type,amount:Math.abs(amount),partyName:partyName|| (type==='Transfer Sent'?'Receiver':type==='Transfer Received'?'Sender':type),partyAccount:partyAccount||currentAccount.account_number,createdAt:tx.created_at,reference:tx.id}));
-        historyList.appendChild(div);
-    });
+
+let currentUser=null,currentProfile=null,currentAccount=null;
+
+const $=id=>document.getElementById(id);
+
+function setMsg(text,type="error"){
+ const el=$("authMsg");
+ el.className="msg "+type;
+ el.textContent=text;
 }
-async function changePin(){const oldPin=document.getElementById('oldPin').value.trim(),newPin=document.getElementById('newPin').value.trim(),confirm=document.getElementById('confirmPin').value.trim();if(!/^\d{4}$/.test(oldPin))return showMessage('pinMessage','Old PIN must be 4 digits.','error');if(!/^\d{4}$/.test(newPin))return showMessage('pinMessage','New PIN must be 4 digits.','error');if(newPin!==confirm)return showMessage('pinMessage','New PINs do not match.','error');showMessage('pinMessage','Changing PIN...','success');try{const {error}=await supabaseClient.rpc('change_transaction_pin',{p_old_pin:oldPin,p_new_pin:newPin});if(error)return showMessage('pinMessage',error.message,'error');showMessage('pinMessage','Transaction PIN changed successfully.','success');document.getElementById('oldPin').value='';document.getElementById('newPin').value='';document.getElementById('confirmPin').value=''}catch(e){showMessage('pinMessage',e.message,'error')}}
-async function sendResetLink(){const email=forgotEmail.value.trim();if(!email)return showMessage('forgotMessage','Please enter your email address.','error');showMessage('forgotMessage','Sending password reset link...','success');try{const redirectTo=window.location.href.split('#')[0].split('?')[0];const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});if(error)return showMessage('forgotMessage',error.message,'error');showMessage('forgotMessage','Password reset link sent. Check your email.','success')}catch(e){showMessage('forgotMessage',e.message,'error')}}
-async function updatePassword(){const password=newPassword.value,confirm=confirmPassword.value;if(!password||!confirm)return showMessage('resetMessage','Please fill both password fields.','error');if(password.length<6)return showMessage('resetMessage','Password must be at least 6 characters.','error');if(password!==confirm)return showMessage('resetMessage','Passwords do not match.','error');showMessage('resetMessage','Updating password...','success');try{const {error}=await supabaseClient.auth.updateUser({password});if(error)return showMessage('resetMessage',error.message,'error');showMessage('resetMessage','Password updated successfully.','success');setTimeout(async()=>{await supabaseClient.auth.signOut();showLogin()},1500)}catch(e){showMessage('resetMessage',e.message,'error')}}
-supabaseClient.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY')showResetPassword()});
-async function copyAccountNumber(){if(!currentAccount)return;try{await navigator.clipboard.writeText(currentAccount.account_number);alert('Account number copied!')}catch(e){alert(currentAccount.account_number)}}
-function showReceipt(o){
-    receiptType.innerText=o.type||'Transaction';
-    receiptAmount.innerText='₦'+Number(o.amount||0).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2});
-    receiptPartyLabel.innerText=o.type==='Transfer Sent'?'To':o.type==='Transfer Received'?'From':'Details';
-    receiptParty.innerText=(o.partyName||'---')+(o.partyAccount?' — '+o.partyAccount:'');
-    receiptAccount.innerText=currentAccount?.account_number||'---';
-    receiptDate.innerText=o.createdAt?new Date(o.createdAt).toLocaleString():new Date().toLocaleString();
-    receiptReference.innerText=o.reference||'---';
-    receiptModal.classList.remove('hidden');
+function clearMsg(){
+ const el=$("authMsg");
+ el.className="msg";
+ el.textContent="";
 }
-function closeReceipt(){receiptModal.classList.add('hidden')}
-function printReceipt(){
-    const modal=document.getElementById("receiptModal");
-    if(!modal) return;
-    document.body.classList.add("printing-receipt");
-    modal.classList.remove("hidden");
-    setTimeout(function(){
-        window.print();
-    },150);
+function hideForms(){
+ ["registerForm","loginForm","forgotForm","resetForm"].forEach(id=>$(id).classList.add("hidden"));
+}
+function showRegister(){
+ clearMsg();hideForms();
+ $("authSubtitle").textContent="Create Demo Account";
+ $("registerForm").classList.remove("hidden");
+}
+function showLogin(){
+ clearMsg();hideForms();
+ $("authSubtitle").textContent="Login to Demo Account";
+ $("loginForm").classList.remove("hidden");
+}
+function showForgot(){
+ clearMsg();hideForms();
+ $("authSubtitle").textContent="Reset Password";
+ $("forgotForm").classList.remove("hidden");
+}
+function showResetPassword(){
+ clearMsg();hideForms();
+ $("authPage").classList.remove("hidden");
+ $("appPage").classList.add("hidden");
+ $("authSubtitle").textContent="Set New Password";
+ $("resetForm").classList.remove("hidden");
+}
+function money(n){
+ return new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN"}).format(Number(n||0));
+}
+function escapeHtml(s){
+ return String(s??"").replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+ }[c]));
+}
+function validPin(pin){return /^\d{4}$/.test(pin)}
+function validAmount(v){
+ const n=Number(v);
+ return Number.isFinite(n)&&n>0;
+}
+function closeModal(){$("modal").classList.add("hidden")}
+function openModal(html){
+ $("modalContent").innerHTML=html;
+ $("modal").classList.remove("hidden");
 }
 
-window.addEventListener("afterprint",function(){
-    document.body.classList.remove("printing-receipt");
+async function createProfileAndAccount(name,phone,email,pin){
+ if(!currentUser)throw new Error("No authenticated user.");
+
+ const {error:profileError}=await supabaseClient.from("users").upsert({
+   id:currentUser.id,
+   full_name:name.trim(),
+   phone:phone.trim(),
+   email:(currentUser.email||email).trim(),
+   transaction_pin:pin
+ });
+ if(profileError)throw profileError;
+
+ const {data:existing,error:findError}=await supabaseClient
+   .from("accounts")
+   .select("id,user_id,account_number,balance")
+   .eq("user_id",currentUser.id)
+   .maybeSingle();
+
+ if(findError)throw findError;
+ if(existing){currentAccount=existing;return existing;}
+
+ let created=null,lastError=null;
+
+ for(let i=0;i<5;i++){
+   const accountNumber="30"+Math.floor(100000000+Math.random()*900000000);
+
+   const {data,error}=await supabaseClient.from("accounts").insert({
+     user_id:currentUser.id,
+     account_number:accountNumber,
+     balance:0
+   }).select("id,user_id,account_number,balance").single();
+
+   if(!error){created=data;break;}
+   lastError=error;
+ }
+
+ if(!created)throw lastError||new Error("Could not create demo account.");
+ currentAccount=created;
+ return created;
+}
+
+async function loadUserData(){
+ const {data:profile,error:profileError}=await supabaseClient
+   .from("users")
+   .select("id,full_name,phone,email,transaction_pin")
+   .eq("id",currentUser.id)
+   .maybeSingle();
+
+ if(profileError)throw profileError;
+ if(!profile)throw new Error("Profile not found.");
+ currentProfile=profile;
+
+ const {data:account,error:accountError}=await supabaseClient
+   .from("accounts")
+   .select("id,user_id,account_number,balance")
+   .eq("user_id",currentUser.id)
+   .maybeSingle();
+
+ if(accountError)throw accountError;
+ if(!account)throw new Error("Demo account not found.");
+ currentAccount=account;
+}
+
+async function startApp(){
+ await loadUserData();
+ $("authPage").classList.add("hidden");
+ $("appPage").classList.remove("hidden");
+ $("welcomeName").textContent=currentProfile.full_name||"User";
+ $("accountNumber").textContent=currentAccount.account_number;
+ $("balance").textContent=money(currentAccount.balance);
+ await loadHistory();
+}
+
+async function checkSession(){
+ const {data,error}=await supabaseClient.auth.getSession();
+ if(error){showLogin();return;}
+
+ if((location.hash||"").includes("type=recovery"))return;
+
+ if(data.session){
+   currentUser=data.session.user;
+   try{await startApp();}
+   catch(e){showLogin();setMsg(e.message||"Could not load account.");}
+ }else{
+   showLogin();
+ }
+}
+
+$("registerForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ clearMsg();
+
+ const name=$("regName").value.trim();
+ const phone=$("regPhone").value.trim();
+ const email=$("regEmail").value.trim();
+ const password=$("regPassword").value;
+ const pin=$("regPin").value;
+
+ if(!name||!phone||!email||password.length<6||!validPin(pin)){
+   setMsg("Please enter valid details. Password must be at least 6 characters and PIN must be exactly 4 digits.");
+   return;
+ }
+
+ $("registerBtn").disabled=true;
+ $("registerBtn").textContent="Creating...";
+
+ try{
+   const {data,error}=await supabaseClient.auth.signUp({
+     email,password,
+     options:{data:{full_name:name,phone}}
+   });
+
+   if(error)throw error;
+
+   if(!data.session){
+     showLogin();
+     setMsg("Account created. If email confirmation is enabled, check your email first, then login.","success");
+     return;
+   }
+
+   currentUser=data.user;
+   await createProfileAndAccount(name,phone,email,pin);
+   await startApp();
+
+ }catch(err){
+   setMsg("Profile setup failed: "+(err.message||err));
+ }finally{
+   $("registerBtn").disabled=false;
+   $("registerBtn").textContent="Create Account";
+ }
 });
 
-async function logout(){await supabaseClient.auth.signOut();currentUser=null;currentAccount=null;document.getElementById('app').classList.add('hidden');showLogin()}
-function escapeHTML(v){const d=document.createElement('div');d.textContent=v==null?'':v;return d.innerHTML}
-async function checkSession(){const {data}=await supabaseClient.auth.getSession();if(data?.session){currentUser=data.session.user;if(window.location.hash.includes('type=recovery'))return;await loadCurrentAccount();if(currentAccount)startApp();else showLogin()}else showLogin()}
-checkSession();
-</script>
-</body>
-</html>
+$("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ clearMsg();
+
+ const email=$("loginEmail").value.trim();
+ const password=$("loginPassword").value;
+
+ try{
+   const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});
+   if(error)throw error;
+
+   currentUser=data.user;
+   await startApp();
+
+ }catch(err){
+   setMsg(err.message||"Login failed.");
+ }
+});
+
+$("forgotForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ clearMsg();
+
+ const email=$("forgotEmail").value.trim();
+
+ try{
+   const options={};
+   if(/^https?:$/.test(location.protocol)){
+     options.redirectTo=location.origin+location.pathname;
+   }
+
+   const {error}=await supabaseClient.auth.resetPasswordForEmail(email,options);
+   if(error)throw error;
+
+   setMsg("Password reset link sent. Check your email.","success");
+
+ }catch(err){
+   setMsg(err.message||"Could not send reset link.");
+ }
+});
+
+$("resetForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ clearMsg();
+
+ const p=$("newPassword").value;
+ const c=$("confirmPassword").value;
+
+ if(p.length<6){setMsg("Password must be at least 6 characters.");return;}
+ if(p!==c){setMsg("Passwords do not match.");return;}
+
+ try{
+   const {error}=await supabaseClient.auth.updateUser({password:p});
+   if(error)throw error;
+
+   await supabaseClient.auth.signOut();
+   history.replaceState({},document.title,location.pathname);
+   showLogin();
+   setMsg("Password updated successfully. You can now login.","success");
+
+ }catch(err){
+   setMsg(err.message||"Could not update password.");
+ }
+});
+
+supabaseClient.auth.onAuthStateChange((event)=>{
+ if(event==="PASSWORD_RECOVERY")showResetPassword();
+});
+
+async function refreshBalance(){
+ const {data,error}=await supabaseClient.from("accounts")
+   .select("id,account_number,balance")
+   .eq("user_id",currentUser.id)
+   .maybeSingle();
+
+ if(error)throw error;
+
+ if(data){
+   currentAccount=data;
+   $("balance").textContent=money(data.balance);
+   $("accountNumber").textContent=data.account_number;
+ }
+}
+
+function openDeposit(){
+ openModal(`
+ <h3>Deposit Demo Money</h3>
+ <p>This adds demo funds to your test account.</p>
+ <label>Amount (₦)</label>
+ <input id="depositAmount" type="number" min="1" step="0.01" placeholder="1000">
+ <button onclick="doDeposit()">Deposit</button>
+ <button class="secondary" onclick="closeModal()">Cancel</button>
+ `);
+}
+
+async function doDeposit(){
+ const amount=Number($("depositAmount").value);
+
+ if(!validAmount(amount)){alert("Enter a valid amount.");return;}
+
+ try{
+   const {data,error}=await supabaseClient.rpc("deposit_money",{p_amount:amount});
+   if(error)throw error;
+
+   await refreshBalance();
+   await loadHistory();
+   closeModal();
+
+   showReceipt({
+     type:"Deposit",
+     amount,
+     partyName:"Demo Deposit",
+     partyAccount:currentAccount.account_number
+   });
+
+ }catch(e){
+   alert("Deposit failed: "+e.message);
+ }
+}
+
+function openTransfer(){
+ openModal(`
+ <h3>Transfer Demo Money</h3>
+ <label>Receiver Account Number</label>
+ <input id="receiverAccount" inputmode="numeric" maxlength="10" placeholder="3012345678">
+
+ <label>Amount (₦)</label>
+ <input id="transferAmount" type="number" min="1" step="0.01" placeholder="500">
+
+ <label>4-Digit Transaction PIN</label>
+ <input id="transferPin" type="password" inputmode="numeric" maxlength="4">
+
+ <button onclick="doTransfer()">Transfer</button>
+ <button class="secondary" onclick="closeModal()">Cancel</button>
+ `);
+}
+
+async function doTransfer(){
+ const receiver=$("receiverAccount").value.trim();
+ const amount=Number($("transferAmount").value);
+ const pin=$("transferPin").value;
+
+ if(!/^\d{10}$/.test(receiver)){
+   alert("Account number must be 10 digits.");return;
+ }
+ if(receiver===currentAccount.account_number){
+   alert("You cannot transfer to your own account.");return;
+ }
+ if(!validAmount(amount)||!validPin(pin)){
+   alert("Enter a valid amount and 4-digit PIN.");return;
+ }
+
+ try{
+   const {data,error}=await supabaseClient.rpc("transfer_money",{
+     p_receiver_account_number:receiver,
+     p_amount:amount,
+     p_pin:pin
+   });
+
+   if(error)throw error;
+
+   const result=Array.isArray(data)?(data[0]||{}):(data||{});
+
+   await refreshBalance();
+   await loadHistory();
+   closeModal();
+
+   showReceipt({
+     type:"Transfer",
+     amount,
+     partyName:result.receiver_name||"Demo Recipient",
+     partyAccount:result.receiver_account_number||receiver
+   });
+
+ }catch(e){
+   alert("Transfer failed: "+e.message);
+ }
+}
+
+function openWithdraw(){
+ openModal(`
+ <h3>Withdraw Demo Money</h3>
+ <label>Amount (₦)</label>
+ <input id="withdrawAmount" type="number" min="1" step="0.01" placeholder="500">
+
+ <label>4-Digit Transaction PIN</label>
+ <input id="withdrawPin" type="password" inputmode="numeric" maxlength="4">
+
+ <button class="danger" onclick="doWithdraw()">Withdraw</button>
+ <button class="secondary" onclick="closeModal()">Cancel</button>
+ `);
+}
+
+async function doWithdraw(){
+ const amount=Number($("withdrawAmount").value);
+ const pin=$("withdrawPin").value;
+
+ if(!validAmount(amount)||!validPin(pin)){
+   alert("Enter a valid amount and 4-digit PIN.");return;
+ }
+
+ try{
+   const {error}=await supabaseClient.rpc("withdraw_money",{
+     p_amount:amount,
+     p_pin:pin
+   });
+
+   if(error)throw error;
+
+   await refreshBalance();
+   await loadHistory();
+   closeModal();
+
+   showReceipt({
+     type:"Withdrawal",
+     amount,
+     partyName:"Demo Withdrawal",
+     partyAccount:currentAccount.account_number
+   });
+
+ }catch(e){
+   alert("Withdrawal failed: "+e.message);
+ }
+}
+
+async function loadHistory(){
+ if(!currentAccount)return;
+
+ const box=$("historyList");
+ box.innerHTML='<div class="empty">Loading...</div>';
+
+ try{
+   const {data,error}=await supabaseClient.from("transactions")
+     .select("id,transaction_type,amount,created_at")
+     .eq("account_id",currentAccount.id)
+     .order("created_at",{ascending:false})
+     .limit(20);
+
+   if(error)throw error;
+
+   if(!data||!data.length){
+     box.innerHTML='<div class="empty">No transactions yet.</div>';
+     return;
+   }
+
+   box.innerHTML=data.map(t=>{
+     const n=Number(t.amount||0);
+     const cls=n>=0?"pos":"neg";
+
+     return `
+     <div class="tx">
+       <div>
+         <b>${escapeHtml(t.transaction_type||"Transaction")}</b><br>
+         <small>${new Date(t.created_at).toLocaleString()}</small>
+       </div>
+       <strong class="${cls}">
+         ${n>=0?"+":""}${money(n)}
+       </strong>
+     </div>`;
+   }).join("");
+
+ }catch(e){
+   box.innerHTML='<div class="empty">Could not load history: '+escapeHtml(e.message)+'</div>';
+ }
+}
+
+function showProfile(){
+ openModal(`
+ <h3>Profile</h3>
+ <div class="profile-row"><b>Name:</b> ${escapeHtml(currentProfile?.full_name)}</div>
+ <div class="profile-row"><b>Phone:</b> ${escapeHtml(currentProfile?.phone)}</div>
+ <div class="profile-row"><b>Email:</b> ${escapeHtml(currentProfile?.email)}</div>
+ <div class="profile-row"><b>Account:</b> ${escapeHtml(currentAccount?.account_number)}</div>
+ <button class="secondary" onclick="closeModal()">Close</button>
+ `);
+}
+
+function openPin(){
+ openModal(`
+ <h3>Change Transaction PIN</h3>
+
+ <label>Old PIN</label>
+ <input id="oldPin" type="password" inputmode="numeric" maxlength="4">
+
+ <label>New PIN</label>
+ <input id="newPin" type="password" inputmode="numeric" maxlength="4">
+
+ <label>Confirm New PIN</label>
+ <input id="confirmPin" type="password" inputmode="numeric" maxlength="4">
+
+ <button onclick="doChangePin()">Change PIN</button>
+ <button class="secondary" onclick="closeModal()">Cancel</button>
+ `);
+}
+
+async function doChangePin(){
+ const oldPin=$("oldPin").value;
+ const newPin=$("newPin").value;
+ const confirm=$("confirmPin").value;
