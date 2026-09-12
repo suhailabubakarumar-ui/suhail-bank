@@ -46,6 +46,7 @@ button.danger{background:#c62828}
 .modalbox{background:white;width:100%;max-width:430px;border-radius:22px;padding:24px;max-height:92vh;overflow:auto}
 .receipt{text-align:center}
 .receipt .logo{font-size:30px;font-weight:800;color:#0968b4}
+.receipt-section-title{font-size:12px;font-weight:800;text-align:left;text-transform:uppercase;letter-spacing:.7px;color:#0968b4;margin:18px 0 4px;padding-top:5px}
 .receipt-line{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid #eee;text-align:left}
 .status{display:inline-block;margin:14px 0;padding:7px 14px;border-radius:99px;background:#e7f7ec;color:#19713a;font-weight:700}
 .empty{text-align:center;color:#777;padding:15px}
@@ -53,7 +54,16 @@ button.danger{background:#c62828}
 .card{padding:22px}.brand{font-size:32px}.grid{grid-template-columns:1fr 1fr}.balance h1{font-size:32px}
 }
 @media print{
-body *{visibility:hidden}.modal,.modal *{visibility:visible}.modal{position:absolute;background:#fff}.modalbox{box-shadow:none}
+  @page{size:A4;margin:12mm}
+  body{background:#fff!important}
+  body *{visibility:hidden!important}
+  .modal{position:fixed!important;inset:0!important;background:#fff!important;padding:0!important;display:block!important}
+  .modalbox{visibility:visible!important;position:static!important;width:100%!important;max-width:760px!important;margin:0 auto!important;box-shadow:none!important;border-radius:0!important;padding:0!important;max-height:none!important;overflow:visible!important}
+  .modalbox *{visibility:visible!important}
+  .receipt{width:100%;max-width:680px;margin:0 auto;text-align:center;padding:10px 18px;font-size:14px}
+  .receipt .logo{font-size:32px}
+  .receipt-actions{display:none!important}
+  .receipt-footer{margin-top:22px!important}
 }
 </style>
 </head>
@@ -455,10 +465,7 @@ $("forgotForm").addEventListener("submit",async e=>{
  const email=$("forgotEmail").value.trim();
 
  try{
-   const options={};
-   if(/^https?:$/.test(location.protocol)){
-     options.redirectTo=location.origin+location.pathname;
-   }
+   const options={redirectTo:APP_URL};
 
    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,options);
    if(error)throw error;
@@ -524,24 +531,42 @@ function openDeposit(){
  `);
 }
 
+async function getLatestTransaction(type, amount, afterIso){
+  const {data,error}=await supabaseClient.from("transactions")
+    .select("id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number")
+    .eq("account_id",currentAccount.id)
+    .eq("transaction_type",type)
+    .eq("amount",amount)
+    .gte("created_at",afterIso)
+    .order("created_at",{ascending:false})
+    .limit(1);
+  if(error)throw error;
+  return data?.[0]||null;
+}
+
 async function doDeposit(){
  const amount=Number($("depositAmount").value);
 
  if(!validAmount(amount)){alert("Enter a valid amount.");return;}
 
  try{
+   const startedAt=new Date().toISOString();
    const {data,error}=await supabaseClient.rpc("deposit_money",{p_amount:amount});
    if(error)throw error;
 
    await refreshBalance();
+   const tx=await getLatestTransaction("Deposit",amount,startedAt);
    await loadHistory();
    closeModal();
 
    showReceipt({
+     id:tx?.id||((Array.isArray(data)?data[0]:data)?.transaction_id)||((Array.isArray(data)?data[0]:data)?.id)||null,
      type:"Deposit",
      amount,
      partyName:"Demo Deposit",
-     partyAccount:currentAccount.account_number
+     partyAccount:currentAccount.account_number,
+     createdAt:tx?.created_at||new Date().toISOString(),
+     balanceAfter:currentAccount.balance
    });
 
  }catch(e){
@@ -597,10 +622,12 @@ async function doTransfer(){
    closeModal();
 
    showReceipt({
+     id:result.transaction_id||result.id||null,
      type:"Transfer",
      amount,
      partyName:result.receiver_name||"Demo Recipient",
-     partyAccount:result.receiver_account_number||receiver
+     partyAccount:result.receiver_account_number||receiver,
+     createdAt:new Date().toISOString()
    });
 
  }catch(e){
@@ -643,10 +670,12 @@ async function doWithdraw(){
    closeModal();
 
    showReceipt({
+     id:null,
      type:"Withdrawal",
      amount,
      partyName:"Demo Withdrawal",
-     partyAccount:currentAccount.account_number
+     partyAccount:currentAccount.account_number,
+     createdAt:new Date().toISOString()
    });
 
  }catch(e){
@@ -674,21 +703,30 @@ async function loadHistory(){
      return;
    }
 
+   window.historyTransactions = {};
+   data.forEach(t=>{ if(t.id) window.historyTransactions[t.id]=t; });
+
    box.innerHTML=data.map(t=>{
      const n=Number(t.amount||0);
-     const cls=n>=0?"pos":"neg";
+     const type=(t.transaction_type||"Transaction").toLowerCase();
+     const isReceived=type.includes("receive");
+     const isTransfer=type.includes("transfer");
+     const isWithdrawal=type.includes("withdraw");
+     const isDeposit=type.includes("deposit");
+     const cls=(isWithdrawal||isTransfer)?"neg":"pos";
 
      return `
-     <div class="tx">
-       <div>
+     <div class="tx" style="padding:14px 0;border-bottom:1px solid #eee;">
+       <div style="flex:1;">
          <b>${escapeHtml(t.transaction_type||"Transaction")}</b><br>
-         ${t.counterparty_name?`<small>Party: ${escapeHtml(t.counterparty_name)}</small><br>`:""}
-         ${t.counterparty_account_number?`<small>Account: ${escapeHtml(t.counterparty_account_number)}</small><br>`:""}
+         ${t.counterparty_name?`<small>${isReceived?"From":"Party"}: ${escapeHtml(t.counterparty_name)}</small><br>`:""}
+         ${t.counterparty_account_number?`<small>${isReceived?"Sender":"Account"}: ${escapeHtml(t.counterparty_account_number)}</small><br>`:""}
          <small>${new Date(t.created_at).toLocaleString()}</small>
        </div>
-       <strong class="${cls}">
-         ${n>=0?"+":""}${money(n)}
-       </strong>
+       <div style="text-align:right;min-width:120px;">
+         <strong class="${cls}">${isReceived?"+":(isWithdrawal||isTransfer?"-":"+")}${money(n)}</strong>
+         <button type="button" style="width:auto;padding:8px 10px;font-size:13px;margin-top:8px;" onclick="showReceiptFromHistory('${escapeHtml(t.id||"")}')">Receipt / Print</button>
+       </div>
      </div>`;
    }).join("");
 
@@ -757,22 +795,82 @@ async function doChangePin(){
 }
 
 function showReceipt(r){
+ const d=r.createdAt?new Date(r.createdAt):new Date();
+ const type=r.type||"Transaction";
+ const lower=type.toLowerCase();
+ const received=lower.includes("receive");
+ const transfer=lower.includes("transfer");
+ const withdrawal=lower.includes("withdraw");
+ const deposit=lower.includes("deposit");
+ const direction=received?"Money Received":withdrawal?"Money Withdrawn":deposit?"Money Deposited":transfer?"Money Sent":"Transaction";
+ const counterLabel=received?"Sender":transfer?"Receiver":withdrawal?"Withdrawal Account":deposit?"Deposit Account":"Party";
+ const txId=r.id||"Not available";
+ const customerName=currentProfile?.full_name||"Not available";
+ const customerPhone=currentProfile?.phone||"Not available";
+ const customerEmail=currentUser?.email||"Not available";
+ const myAccount=currentAccount?.account_number||"Not available";
+ const balanceAfter=(r.balanceAfter!==undefined&&r.balanceAfter!==null)?money(r.balanceAfter):null;
+
  openModal(`
  <div class="receipt" id="printReceipt">
-   <div class="logo">Suhail Bank</div>
-   <p>Digital Banking Demo</p>
-   <span class="status">Successful</span>
+   <div style="font-size:13px;font-weight:700;letter-spacing:1px;">SUHAIL BANK</div>
+   <div class="logo">Transaction Receipt</div>
+   <p style="margin:3px 0;color:#666;font-size:12px;">Digital Banking Demo</p>
+   <span class="status">${escapeHtml(r.status||"Successful")}</span>
 
-   <div class="receipt-line"><b>Type</b><span>${escapeHtml(r.type)}</span></div>
-   <div class="receipt-line"><b>Amount</b><span>${money(r.amount)}</span></div>
-   <div class="receipt-line"><b>Party</b><span>${escapeHtml(r.partyName)}</span></div>
-   <div class="receipt-line"><b>Account</b><span>${escapeHtml(r.partyAccount)}</span></div>
-   <div class="receipt-line"><b>Date</b><span>${new Date().toLocaleString()}</span></div>
+   <div style="margin:12px 0 18px;padding:16px;border:1px solid #ddd;border-radius:14px;">
+     <div style="font-size:12px;color:#666;">${escapeHtml(direction)}</div>
+     <div style="font-size:30px;font-weight:800;margin-top:5px;">${escapeHtml(money(r.amount))}</div>
+     <div style="font-size:11px;color:#777;margin-top:5px;">Currency: NGN</div>
+   </div>
 
-   <button onclick="window.print()">Print Receipt</button>
-   <button class="secondary" onclick="closeModal()">Close</button>
+   <div class="receipt-section-title">Transaction Details</div>
+   <div class="receipt-line"><b>Transaction Type</b><span>${escapeHtml(type)}</span></div>
+   <div class="receipt-line"><b>Transaction ID</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(txId)}</span></div>
+   <div class="receipt-line"><b>Amount</b><span>${escapeHtml(money(r.amount))}</span></div>
+   <div class="receipt-line"><b>Status</b><span>${escapeHtml(r.status||"Successful")}</span></div>
+   <div class="receipt-line"><b>Date</b><span>${escapeHtml(d.toLocaleDateString())}</span></div>
+   <div class="receipt-line"><b>Time</b><span>${escapeHtml(d.toLocaleTimeString())}</span></div>
+
+   <div class="receipt-section-title">Customer Details</div>
+   <div class="receipt-line"><b>Full Name</b><span>${escapeHtml(customerName)}</span></div>
+   <div class="receipt-line"><b>Phone</b><span>${escapeHtml(customerPhone)}</span></div>
+   <div class="receipt-line"><b>Email</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(customerEmail)}</span></div>
+   <div class="receipt-line"><b>My Account</b><span>${escapeHtml(myAccount)}</span></div>
+   <div class="receipt-line"><b>Account Type</b><span>Demo Account</span></div>
+
+   ${r.partyName?`<div class="receipt-section-title">Counterparty Details</div><div class="receipt-line"><b>${escapeHtml(counterLabel)}</b><span>${escapeHtml(r.partyName)}</span></div>`:""}
+   ${r.partyAccount?`<div class="receipt-line"><b>${escapeHtml(counterLabel)} Account</b><span>${escapeHtml(r.partyAccount)}</span></div>`:""}
+   ${balanceAfter?`<div class="receipt-line"><b>Balance After</b><span>${escapeHtml(balanceAfter)}</span></div>`:""}
+
+   <div class="receipt-section-title">Receipt Information</div>
+   <div class="receipt-line"><b>Channel</b><span>Online Demo</span></div>
+   <div class="receipt-line"><b>Reference</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(txId)}</span></div>
+
+   <p class="receipt-footer" style="margin:22px 0 4px;font-weight:700;">Thank you for using Suhail Bank</p>
+   <p style="margin:0;color:#777;font-size:11px;">Keep this receipt for your records.</p>
+   <p style="margin:5px 0 0;color:#777;font-size:10px;">This is a digital banking demo receipt, not a real bank document.</p>
+
+   <div class="receipt-actions">
+     <button onclick="window.print()">Print Receipt</button>
+     <button class="secondary" onclick="closeModal()">Close</button>
+   </div>
  </div>
  `);
+}
+
+function showReceiptFromHistory(id){
+ const t=(window.historyTransactions||{})[id];
+ if(!t){alert("Transaction details are not available.");return;}
+ showReceipt({
+   id:t.id,
+   type:t.transaction_type||"Transaction",
+   amount:Number(t.amount||0),
+   partyName:t.counterparty_name||"",
+   partyAccount:t.counterparty_account_number||"",
+   createdAt:t.created_at,
+   status:"Successful"
+ });
 }
 
 async function logout(){
