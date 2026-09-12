@@ -63,7 +63,7 @@ body *{visibility:hidden}.modal,.modal *{visibility:visible}.modal{position:abso
 <div class="card">
 <h1 class="brand">Suhail Bank</h1>
 <p id="authSubtitle" class="subtitle">Create Demo Account</p>
-<div id="authMsg" class="msg"></div>
+<div id="authMsg" class="msg"></div><p style="text-align:center;color:#777;font-size:12px;margin:0 0 10px">Learning project — not a real bank.</p>
 
 <form id="registerForm">
 <label>Full Name</label>
@@ -95,6 +95,20 @@ body *{visibility:hidden}.modal,.modal *{visibility:visible}.modal{position:abso
 <button type="submit">Login</button>
 <div class="link" onclick="showForgot()">Forgot Password?</div>
 <div class="link" onclick="showRegister()">Create Demo Account</div>
+</form>
+
+<form id="setupForm" class="hidden">
+<label>Full Name</label>
+<input id="setupName" required autocomplete="name">
+
+<label>Phone Number</label>
+<input id="setupPhone" required inputmode="tel" autocomplete="tel">
+
+<label>4-Digit Transaction PIN</label>
+<input id="setupPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required>
+
+<button id="setupBtn" type="submit">Complete Demo Account</button>
+<div class="link" onclick="logout()">Logout</div>
 </form>
 
 <form id="forgotForm" class="hidden">
@@ -172,7 +186,7 @@ function clearMsg(){
  el.textContent="";
 }
 function hideForms(){
- ["registerForm","loginForm","forgotForm","resetForm"].forEach(id=>$(id).classList.add("hidden"));
+ ["registerForm","loginForm","setupForm","forgotForm","resetForm"].forEach(id=>$(id).classList.add("hidden"));
 }
 function showRegister(){
  clearMsg();hideForms();
@@ -227,7 +241,6 @@ async function createProfileAndAccount(name,phone,pin){
   if(error)throw error;
 
   const result=Array.isArray(data)?(data[0]||{}):(data||{});
-
   await loadUserData();
 
   return {
@@ -239,7 +252,7 @@ async function createProfileAndAccount(name,phone,pin){
 async function loadUserData(){
  const {data:profile,error:profileError}=await supabaseClient
    .from("users")
-   .select("id,full_name,phone,email,transaction_pin")
+   .select("id,full_name,phone,transaction_pin")
    .eq("id",currentUser.id)
    .maybeSingle();
 
@@ -257,6 +270,52 @@ async function loadUserData(){
  if(!account)throw new Error("Demo account not found.");
  currentAccount=account;
 }
+
+async function showAccountSetup(){
+ $("authPage").classList.remove("hidden");
+ $("appPage").classList.add("hidden");
+ clearMsg();
+ hideForms();
+
+ $("authSubtitle").textContent="Complete Demo Account";
+ $("setupForm").classList.remove("hidden");
+
+ if(currentUser?.user_metadata?.full_name){
+   $("setupName").value=currentUser.user_metadata.full_name;
+ }
+ if(currentUser?.user_metadata?.phone){
+   $("setupPhone").value=currentUser.user_metadata.phone;
+ }
+}
+
+async function finishAccountSetup(){
+ const name=$("setupName").value.trim();
+ const phone=$("setupPhone").value.trim();
+ const pin=$("setupPin").value;
+
+ if(!name||!phone||!validPin(pin)){
+   setMsg("Please enter a valid name, phone number and a 4-digit PIN.");
+   return;
+ }
+
+ $("setupBtn").disabled=true;
+ $("setupBtn").textContent="Setting up...";
+
+ try{
+   await createProfileAndAccount(name,phone,pin);
+   await startApp();
+ }catch(err){
+   setMsg("Profile setup failed: "+(err.message||err));
+ }finally{
+   $("setupBtn").disabled=false;
+   $("setupBtn").textContent="Complete Demo Account";
+ }
+}
+
+$("setupForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ await finishAccountSetup();
+});
 
 async function startApp(){
  await loadUserData();
@@ -276,8 +335,18 @@ async function checkSession(){
 
  if(data.session){
    currentUser=data.session.user;
-   try{await startApp();}
-   catch(e){showLogin();setMsg(e.message||"Could not load account.");}
+   try{
+     await startApp();
+   }catch(e){
+     if((e.message||"").toLowerCase().includes("profile not found") ||
+        (e.message||"").toLowerCase().includes("demo account not found")){
+       await showAccountSetup();
+       setMsg("Your login is valid, but your demo profile is not complete. Finish the setup below.","info");
+     }else{
+       showLogin();
+       setMsg(e.message||"Could not load account.");
+     }
+   }
  }else{
    showLogin();
  }
@@ -303,24 +372,44 @@ $("registerForm").addEventListener("submit",async e=>{
 
  try{
    const {data,error}=await supabaseClient.auth.signUp({
-     email,password,
+     email,
+     password,
      options:{data:{full_name:name,phone}}
    });
 
-   if(error)throw error;
+   if(error){
+     const msg=(error.message||"").toLowerCase();
 
-   if(!data.session){
-     showLogin();
-     setMsg("Account created. If email confirmation is enabled, check your email first, then login.","success");
-     return;
+     if(msg.includes("already registered") ||
+        msg.includes("already exists") ||
+        msg.includes("user already")){
+       showLogin();
+       $("loginEmail").value=email;
+       setMsg("This email is already registered. Login with your password to complete or open your existing demo account.","info");
+       return;
+     }
+
+     throw error;
+   }
+
+   if(!data.user){
+     throw new Error("Account registration did not return a user.");
    }
 
    currentUser=data.user;
+
+   if(!data.session){
+     showLogin();
+     $("loginEmail").value=email;
+     setMsg("Registration successful. Check your email if confirmation is required, then login to complete your demo account setup.","success");
+     return;
+   }
+
    await createProfileAndAccount(name,phone,pin);
    await startApp();
 
  }catch(err){
-   setMsg("Profile setup failed: "+(err.message||err));
+   setMsg("Registration failed: "+(err.message||err));
  }finally{
    $("registerBtn").disabled=false;
    $("registerBtn").textContent="Create Account";
@@ -339,7 +428,20 @@ $("loginForm").addEventListener("submit",async e=>{
    if(error)throw error;
 
    currentUser=data.user;
-   await startApp();
+
+   try{
+     await startApp();
+   }catch(setupError){
+     const msg=(setupError.message||"").toLowerCase();
+
+     if(msg.includes("profile not found") ||
+        msg.includes("demo account not found")){
+       await showAccountSetup();
+       setMsg("Login successful. Complete your demo profile and create your account number below.","info");
+     }else{
+       throw setupError;
+     }
+   }
 
  }catch(err){
    setMsg(err.message||"Login failed.");
@@ -560,7 +662,7 @@ async function loadHistory(){
 
  try{
    const {data,error}=await supabaseClient.from("transactions")
-     .select("id,transaction_type,amount,created_at")
+     .select("id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number")
      .eq("account_id",currentAccount.id)
      .order("created_at",{ascending:false})
      .limit(20);
@@ -580,6 +682,8 @@ async function loadHistory(){
      <div class="tx">
        <div>
          <b>${escapeHtml(t.transaction_type||"Transaction")}</b><br>
+         ${t.counterparty_name?`<small>Party: ${escapeHtml(t.counterparty_name)}</small><br>`:""}
+         ${t.counterparty_account_number?`<small>Account: ${escapeHtml(t.counterparty_account_number)}</small><br>`:""}
          <small>${new Date(t.created_at).toLocaleString()}</small>
        </div>
        <strong class="${cls}">
@@ -598,7 +702,7 @@ function showProfile(){
  <h3>Profile</h3>
  <div class="profile-row"><b>Name:</b> ${escapeHtml(currentProfile?.full_name)}</div>
  <div class="profile-row"><b>Phone:</b> ${escapeHtml(currentProfile?.phone)}</div>
- <div class="profile-row"><b>Email:</b> ${escapeHtml(currentProfile?.email)}</div>
+ <div class="profile-row"><b>Email:</b> ${escapeHtml(currentUser?.email||"")}</div>
  <div class="profile-row"><b>Account:</b> ${escapeHtml(currentAccount?.account_number)}</div>
  <button class="secondary" onclick="closeModal()">Close</button>
  `);
