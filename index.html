@@ -66,6 +66,9 @@ button.danger{background:#c62828}
   .receipt-footer{margin-top:22px!important}
 }
 </style>
+<style>
+.password-wrap{position:relative;display:block}.password-wrap input{padding-right:44px!important}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:5px;font-size:18px;line-height:1;opacity:.7}.password-toggle:hover{opacity:1}
+</style>
 </head>
 <body>
 
@@ -86,10 +89,10 @@ button.danger{background:#c62828}
 <input id="regEmail" type="email" required autocomplete="email">
 
 <label>Password</label>
-<input id="regPassword" type="password" minlength="6" required autocomplete="new-password">
+<div class="password-wrap"><input id="regPassword" type="password" minlength="6" required autocomplete="new-password"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
 <label>4-Digit Transaction PIN</label>
-<input id="regPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required>
+<div class="password-wrap"><input id="regPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
 <button id="registerBtn" type="submit">Create Account</button>
 <div class="link" onclick="showLogin()">Already have an account? Login</div>
@@ -100,7 +103,7 @@ button.danger{background:#c62828}
 <input id="loginEmail" type="email" required autocomplete="email">
 
 <label>Password</label>
-<input id="loginPassword" type="password" required autocomplete="current-password">
+<div class="password-wrap"><input id="loginPassword" type="password" required autocomplete="current-password"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
 <button type="submit">Login</button>
 <div class="link" onclick="showForgot()">Forgot Password?</div>
@@ -115,7 +118,7 @@ button.danger{background:#c62828}
 <input id="setupPhone" required inputmode="tel" autocomplete="tel">
 
 <label>4-Digit Transaction PIN</label>
-<input id="setupPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required>
+<div class="password-wrap"><input id="setupPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
 <button id="setupBtn" type="submit">Complete Account Setup</button>
 <div class="link" onclick="logout()">Logout</div>
@@ -130,9 +133,9 @@ button.danger{background:#c62828}
 
 <form id="resetForm" class="hidden">
 <label>New Password</label>
-<input id="newPassword" type="password" minlength="6" required autocomplete="new-password">
+<div class="password-wrap"><input id="newPassword" type="password" minlength="6" required autocomplete="new-password"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 <label>Confirm New Password</label>
-<input id="confirmPassword" type="password" minlength="6" required autocomplete="new-password">
+<div class="password-wrap"><input id="confirmPassword" type="password" minlength="6" required autocomplete="new-password"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 <button type="submit">Update Password</button>
 </form>
 </div>
@@ -597,7 +600,7 @@ function openTransfer(){
  <input id="transferAmount" type="number" min="1" step="0.01" placeholder="500">
 
  <label>4-Digit Transaction PIN</label>
- <input id="transferPin" type="password" inputmode="numeric" maxlength="4">
+ <div class="password-wrap"><input id="transferPin" type="password" inputmode="numeric" maxlength="4"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
  <button onclick="doTransfer()">Transfer</button>
  <button class="secondary" onclick="closeModal()">Cancel</button>
@@ -655,7 +658,7 @@ function openWithdraw(){
  <input id="withdrawAmount" type="number" min="1" step="0.01" placeholder="500">
 
  <label>4-Digit Transaction PIN</label>
- <input id="withdrawPin" type="password" inputmode="numeric" maxlength="4">
+ <div class="password-wrap"><input id="withdrawPin" type="password" inputmode="numeric" maxlength="4"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
  <button class="danger" onclick="doWithdraw()">Withdraw</button>
  <button class="secondary" onclick="closeModal()">Cancel</button>
@@ -764,13 +767,13 @@ function openPin(){
  <h3>Change Transaction PIN</h3>
 
  <label>Old PIN</label>
- <input id="oldPin" type="password" inputmode="numeric" maxlength="4">
+ <div class="password-wrap"><input id="oldPin" type="password" inputmode="numeric" maxlength="4"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
  <label>New PIN</label>
- <input id="newPin" type="password" inputmode="numeric" maxlength="4">
+ <div class="password-wrap"><input id="newPin" type="password" inputmode="numeric" maxlength="4"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
  <label>Confirm New PIN</label>
- <input id="confirmPin" type="password" inputmode="numeric" maxlength="4">
+ <div class="password-wrap"><input id="confirmPin" type="password" inputmode="numeric" maxlength="4"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
 
  <button onclick="doChangePin()">Change PIN</button>
  <button class="secondary" onclick="closeModal()">Cancel</button>
@@ -797,7 +800,6 @@ async function doChangePin(){
 
    if(error)throw error;
 
-   if(currentProfile)currentProfile.transaction_pin=newPin;
 
    closeModal();
    alert("Transaction PIN changed successfully.");
@@ -898,6 +900,9 @@ async function logout(){
 }
 
 checkSession();
+</script>
+<script>
+function togglePassword(button){const wrap=button.closest('.password-wrap');const input=wrap&&wrap.querySelector('input');if(!input)return;const hidden=input.type==='password';input.type=hidden?'text':'password';button.textContent=hidden?'🙈':'👁️';button.setAttribute('aria-label',hidden?'Hide password or PIN':'Show password or PIN');}
 </script>
 </body>
 </html>
