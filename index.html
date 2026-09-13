@@ -65,6 +65,7 @@ button.danger{background:#c62828}
   .receipt-actions{display:none!important}
   .receipt-footer{margin-top:22px!important}
 }
+.history-tools{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:9px;margin:14px 0 8px}.history-tools input,.history-tools select{margin:0;padding:12px;border:1px solid #d3dae1;border-radius:12px;font-size:14px;background:#fff}@media(max-width:520px){.history-tools{grid-template-columns:1fr}.history-tools input,.history-tools select{width:100%}}
 </style>
 <style>
 .password-wrap{position:relative;display:block}.password-wrap input{padding-right:44px!important}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:5px;font-size:18px;line-height:1;opacity:.7}.password-toggle:hover{opacity:1}
@@ -175,7 +176,15 @@ button.danger{background:#c62828}
 </div>
 
 <div id="contentPanel" class="panel">
-<h3>Recent Transactions</h3>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+<h3 style="margin-bottom:0;">Transaction History</h3>
+<button type="button" class="secondary" style="width:auto;margin:0;padding:9px 12px;font-size:13px;" onclick="loadHistory()">↻ Refresh</button>
+</div>
+<div class="history-tools">
+<input id="historySearch" type="search" placeholder="🔎 Search transaction, name or account..." oninput="filterHistory()">
+<select id="historyType" onchange="filterHistory()"><option value="all">All Transactions</option><option value="received">Money Received</option><option value="sent">Money Sent</option><option value="deposit">Deposit</option><option value="withdrawal">Withdrawal</option></select>
+<input id="historyDate" type="date" onchange="filterHistory()">
+</div>
 <div id="historyList"><div class="empty">No transactions yet.</div></div>
 </div>
 </div>
@@ -719,54 +728,35 @@ async function doWithdraw(){
 
 async function loadHistory(){
  if(!currentAccount)return;
-
- const box=$("historyList");
- box.innerHTML='<div class="empty">Loading...</div>';
-
+ const box=$("historyList"); box.innerHTML='<div class="empty">Loading...</div>';
  try{
-   const {data,error}=await supabaseClient.from("transactions")
-     .select("id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number")
-     .eq("account_id",currentAccount.id)
-     .order("created_at",{ascending:false})
-     .limit(20);
+  const {data,error}=await supabaseClient.from("transactions").select("id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number").eq("account_id",currentAccount.id).order("created_at",{ascending:false}).limit(100);
+  if(error)throw error;
+  window.historyTransactions={}; window.allHistoryTransactions=data||[];
+  (data||[]).forEach(t=>{if(t.id)window.historyTransactions[t.id]=t;}); filterHistory();
+ }catch(e){box.innerHTML='<div class="empty">Could not load history: '+escapeHtml(e.message)+'</div>';}
+}
 
-   if(error)throw error;
+function filterHistory(){
+ const box=$("historyList"), data=window.allHistoryTransactions||[];
+ const search=(($("historySearch")||{}).value||"").trim().toLowerCase(), type=(($("historyType")||{}).value||"all"), date=(($("historyDate")||{}).value||"");
+ const filtered=data.filter(t=>{
+  const raw=(t.transaction_type||"").toLowerCase(), hay=[t.transaction_type,t.counterparty_name,t.counterparty_account_number,t.id,t.amount].join(" ").toLowerCase();
+  let mt=true; if(type==="received")mt=raw.includes("receive"); else if(type==="sent")mt=raw.includes("transfer")&&!raw.includes("receive"); else if(type==="deposit")mt=raw.includes("deposit"); else if(type==="withdrawal")mt=raw.includes("withdraw");
+  return (!search||hay.includes(search))&&mt&&(!date||new Date(t.created_at).toISOString().slice(0,10)===date);
+ });
+ if(!filtered.length){box.innerHTML='<div class="empty">No matching transactions.</div>';return;}
+ box.innerHTML=filtered.map(t=>{
+  const n=Number(t.amount||0), raw=(t.transaction_type||"Transaction").toLowerCase(), received=raw.includes("receive"), transfer=raw.includes("transfer"), withdrawal=raw.includes("withdraw");
+  const cls=(withdrawal||transfer&&!received)?"neg":"pos", sign=received?"+":(withdrawal||transfer?"-":"+");
+  return `<div class="tx" style="padding:14px 0;border-bottom:1px solid #eee;cursor:pointer;" onclick="showTransactionDetails('${escapeHtml(t.id||"")}')"><div style="flex:1;min-width:0;"><b>${escapeHtml(t.transaction_type||"Transaction")}</b><br>${t.counterparty_name?`<small>${received?"From":"Party"}: ${escapeHtml(t.counterparty_name)}</small><br>`:""}${t.counterparty_account_number?`<small>${received?"Sender":"Account"}: ${escapeHtml(t.counterparty_account_number)}</small><br>`:""}<small>${new Date(t.created_at).toLocaleString()}</small></div><div style="text-align:right;min-width:125px;"><strong class="${cls}">${sign}${money(n)}</strong><button type="button" style="width:auto;padding:8px 10px;font-size:13px;margin-top:8px;" onclick="event.stopPropagation();showReceiptFromHistory('${escapeHtml(t.id||"")}')">Receipt / Print</button></div></div>`;
+ }).join("");
+}
 
-   if(!data||!data.length){
-     box.innerHTML='<div class="empty">No transactions yet.</div>';
-     return;
-   }
-
-   window.historyTransactions = {};
-   data.forEach(t=>{ if(t.id) window.historyTransactions[t.id]=t; });
-
-   box.innerHTML=data.map(t=>{
-     const n=Number(t.amount||0);
-     const type=(t.transaction_type||"Transaction").toLowerCase();
-     const isReceived=type.includes("receive");
-     const isTransfer=type.includes("transfer");
-     const isWithdrawal=type.includes("withdraw");
-     const isDeposit=type.includes("deposit");
-     const cls=(isWithdrawal||isTransfer)?"neg":"pos";
-
-     return `
-     <div class="tx" style="padding:14px 0;border-bottom:1px solid #eee;">
-       <div style="flex:1;">
-         <b>${escapeHtml(t.transaction_type||"Transaction")}</b><br>
-         ${t.counterparty_name?`<small>${isReceived?"From":"Party"}: ${escapeHtml(t.counterparty_name)}</small><br>`:""}
-         ${t.counterparty_account_number?`<small>${isReceived?"Sender":"Account"}: ${escapeHtml(t.counterparty_account_number)}</small><br>`:""}
-         <small>${new Date(t.created_at).toLocaleString()}</small>
-       </div>
-       <div style="text-align:right;min-width:120px;">
-         <strong class="${cls}">${isReceived?"+":(isWithdrawal||isTransfer?"-":"+")}${money(n)}</strong>
-         <button type="button" style="width:auto;padding:8px 10px;font-size:13px;margin-top:8px;" onclick="showReceiptFromHistory('${escapeHtml(t.id||"")}')">Receipt / Print</button>
-       </div>
-     </div>`;
-   }).join("");
-
- }catch(e){
-   box.innerHTML='<div class="empty">Could not load history: '+escapeHtml(e.message)+'</div>';
- }
+function showTransactionDetails(id){
+ const t=(window.historyTransactions||{})[id]; if(!t){notify("Transaction details are not available.","error");return;}
+ const raw=(t.transaction_type||"Transaction").toLowerCase(), received=raw.includes("receive"), direction=received?"Money Received":(raw.includes("withdraw")?"Money Withdrawn":(raw.includes("deposit")?"Money Deposited":"Money Sent"));
+ openModal(`<h3>Transaction Details</h3><div class="receipt-line"><b>Direction</b><span>${escapeHtml(direction)}</span></div><div class="receipt-line"><b>Type</b><span>${escapeHtml(t.transaction_type||"Transaction")}</span></div><div class="receipt-line"><b>Amount</b><span>${money(t.amount)}</span></div>${t.counterparty_name?`<div class="receipt-line"><b>${received?"Sender":"Party"}</b><span>${escapeHtml(t.counterparty_name)}</span></div>`:""}${t.counterparty_account_number?`<div class="receipt-line"><b>${received?"Sender Account":"Account"}</b><span>${escapeHtml(t.counterparty_account_number)}</span></div>`:""}<div class="receipt-line"><b>Transaction ID</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(t.id||"—")}</span></div><div class="receipt-line"><b>Date & Time</b><span>${new Date(t.created_at).toLocaleString()}</span></div><button onclick="showReceiptFromHistory('${escapeHtml(t.id||"")}')">Receipt / Print</button><button class="secondary" onclick="closeModal()">Close</button>`);
 }
 
 function showProfile(){
