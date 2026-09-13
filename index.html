@@ -339,10 +339,22 @@ async function startApp(){
 }
 
 async function checkSession(){
+ const hash=(location.hash||"").toLowerCase();
+ const params=new URLSearchParams(location.search||"");
+ const recoveryInUrl =
+   hash.includes("type=recovery") ||
+   hash.includes("access_token=") ||
+   params.get("type")==="recovery" ||
+   params.has("code");
+
+ if(recoveryInUrl){
+   showResetPassword();
+   setMsg("Enter your new password below.","info");
+   return;
+ }
+
  const {data,error}=await supabaseClient.auth.getSession();
  if(error){showLogin();return;}
-
- if((location.hash||"").includes("type=recovery"))return;
 
  if(data.session){
    currentUser=data.session.user;
