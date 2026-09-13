@@ -72,7 +72,7 @@ button.danger{background:#c62828}
 <section id="authPage" class="page">
 <div class="card">
 <h1 class="brand">Suhail Bank</h1>
-<p id="authSubtitle" class="subtitle">Create Demo Account</p>
+<p id="authSubtitle" class="subtitle">Login to Demo Account</p>
 <div id="authMsg" class="msg"></div><p style="text-align:center;color:#777;font-size:12px;margin:0 0 10px">Learning project — not a real bank.</p>
 
 <form id="registerForm">
@@ -117,7 +117,7 @@ button.danger{background:#c62828}
 <label>4-Digit Transaction PIN</label>
 <input id="setupPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required>
 
-<button id="setupBtn" type="submit">Complete Demo Account</button>
+<button id="setupBtn" type="submit">Complete Account Setup</button>
 <div class="link" onclick="logout()">Logout</div>
 </form>
 
@@ -319,7 +319,7 @@ async function finishAccountSetup(){
    setMsg("Profile setup failed: "+(err.message||err));
  }finally{
    $("setupBtn").disabled=false;
-   $("setupBtn").textContent="Complete Demo Account";
+   $("setupBtn").textContent="Complete Account Setup";
  }
 }
 
