@@ -68,9 +68,15 @@ button.danger{background:#c62828}
 </style>
 <style>
 .password-wrap{position:relative;display:block}.password-wrap input{padding-right:44px!important}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:5px;font-size:18px;line-height:1;opacity:.7}.password-toggle:hover{opacity:1}
+
+.toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100% - 36px));pointer-events:none}
+.toast{padding:14px 16px;border-radius:14px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid #0968b4;animation:toastIn .25s ease}
+.toast.success{border-left-color:#1b8a4b}.toast.error{border-left-color:#c62828}.toast.info{border-left-color:#0968b4}.toast.hide{opacity:0;transform:translateY(-8px);transition:.25s}
+@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
+<div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
 <section id="authPage" class="page">
 <div class="card">
@@ -188,6 +194,16 @@ const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser=null,currentProfile=null,currentAccount=null;
 
 const $=id=>document.getElementById(id);
+
+function notify(text,type="info",duration=3000){
+ const box=$("toastContainer");
+ if(!box)return;
+ const toast=document.createElement("div");
+ toast.className="toast "+type;
+ toast.textContent=text;
+ box.appendChild(toast);
+ setTimeout(()=>{toast.classList.add("hide");setTimeout(()=>toast.remove(),250)},duration);
+}
 
 function setMsg(text,type="error"){
  const el=$("authMsg");
@@ -563,7 +579,7 @@ async function getLatestTransaction(type, amount, afterIso){
 async function doDeposit(){
  const amount=Number($("depositAmount").value);
 
- if(!validAmount(amount)){alert("Enter a valid amount.");return;}
+ if(!validAmount(amount)){notify("Enter a valid amount.","error");return;}
 
  try{
    const startedAt=new Date().toISOString();
@@ -586,7 +602,7 @@ async function doDeposit(){
    });
 
  }catch(e){
-   alert("Deposit failed: "+e.message);
+   notify("Deposit failed: "+e.message,"error",4500);
  }
 }
 
@@ -613,13 +629,13 @@ async function doTransfer(){
  const pin=$("transferPin").value;
 
  if(!/^\d{10}$/.test(receiver)){
-   alert("Account number must be 10 digits.");return;
+   notify("Account number must be 10 digits.","error");return;
  }
  if(receiver===currentAccount.account_number){
-   alert("You cannot transfer to your own account.");return;
+   notify("You cannot transfer to your own account.","error");return;
  }
  if(!validAmount(amount)||!validPin(pin)){
-   alert("Enter a valid amount and 4-digit PIN.");return;
+   notify("Enter a valid amount and 4-digit PIN.","error");return;
  }
 
  try{
@@ -635,6 +651,7 @@ async function doTransfer(){
 
    await refreshBalance();
    await loadHistory();
+   notify("Transfer successful.","success");
    closeModal();
 
    showReceipt({
@@ -647,7 +664,7 @@ async function doTransfer(){
    });
 
  }catch(e){
-   alert("Transfer failed: "+e.message);
+   notify("Transfer failed: "+e.message,"error",4500);
  }
 }
 
@@ -670,7 +687,7 @@ async function doWithdraw(){
  const pin=$("withdrawPin").value;
 
  if(!validAmount(amount)||!validPin(pin)){
-   alert("Enter a valid amount and 4-digit PIN.");return;
+   notify("Enter a valid amount and 4-digit PIN.","error");return;
  }
 
  try{
@@ -683,6 +700,7 @@ async function doWithdraw(){
 
    await refreshBalance();
    await loadHistory();
+   notify("Withdrawal successful.","success");
    closeModal();
 
    showReceipt({
@@ -695,7 +713,7 @@ async function doWithdraw(){
    });
 
  }catch(e){
-   alert("Withdrawal failed: "+e.message);
+   notify("Withdrawal failed: "+e.message,"error",4500);
  }
 }
 
@@ -786,10 +804,10 @@ async function doChangePin(){
  const confirm=$("confirmPin").value;
 
  if(!validPin(oldPin)||!validPin(newPin)){
-   alert("PIN must be exactly 4 digits.");return;
+   notify("PIN must be exactly 4 digits.","error");return;
  }
  if(newPin!==confirm){
-   alert("New PINs do not match.");return;
+   notify("New PINs do not match.","error");return;
  }
 
  try{
@@ -802,10 +820,10 @@ async function doChangePin(){
 
 
    closeModal();
-   alert("Transaction PIN changed successfully.");
+   notify("Transaction PIN changed successfully.","success");
 
  }catch(e){
-   alert("PIN change failed: "+e.message);
+   notify("PIN change failed: "+e.message,"error",4500);
  }
 }
 
@@ -876,7 +894,7 @@ function showReceipt(r){
 
 function showReceiptFromHistory(id){
  const t=(window.historyTransactions||{})[id];
- if(!t){alert("Transaction details are not available.");return;}
+ if(!t){notify("Transaction details are not available.","error");return;}
  showReceipt({
    id:t.id,
    type:t.transaction_type||"Transaction",
