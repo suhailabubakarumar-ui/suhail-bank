@@ -602,29 +602,199 @@ async function doDeposit(){
   }catch(e){notify("Deposit failed: "+e.message,"error",4500);}
 }
 
+let pendingTransfer=null;
+
 function openTransfer(){
-  openModal(`<h3>Transfer Wallet Money</h3>
-  <p style="color:#666;font-size:13px;">Demo transfer engine.</p>
-  <label>Receiver Account Number</label><input id="receiverAccount" inputmode="numeric" maxlength="10" placeholder="3012345678">
-  <label>Amount (₦)</label><input id="transferAmount" type="number" min="1" step="0.01" placeholder="500">
-  <button onclick="doTransfer()">Transfer</button><button class="secondary" onclick="closeModal()">Cancel</button>`);
+  pendingTransfer=null;
+  openModal(`
+    <h3>Smart Transfer</h3>
+    <p style="color:#666;font-size:13px;margin-top:-4px;">
+      First verify the receiver. No demo money will be sent until you press <b>Confirm Transfer</b>.
+    </p>
+
+    <label>Receiver Account Number</label>
+    <input id="receiverAccount" inputmode="numeric" maxlength="10"
+      placeholder="3012345678" autocomplete="off">
+
+    <button id="findReceiverBtn" onclick="findTransferRecipient()">🔎 Find Receiver</button>
+    <button class="secondary" onclick="closeModal()">Cancel</button>
+  `);
 }
-async function doTransfer(){
-  const receiver=$("receiverAccount").value.trim(),amount=Number($("transferAmount").value);
-  if(!/^\d{10}$/.test(receiver)){notify("Account number must be 10 digits.","error");return;}
-  if(receiver===currentAccount.account_number){notify("You cannot transfer to your own account.","error");return;}
-  if(!validAmount(amount)){notify("Enter a valid amount.","error");return;}
+
+async function findTransferRecipient(){
+  const receiver=$("receiverAccount").value.trim();
+
+  if(!/^\d{10}$/.test(receiver)){
+    notify("Account number must be exactly 10 digits.","error");
+    return;
+  }
+
+  if(receiver===currentAccount.account_number){
+    notify("You cannot transfer to your own account.","error");
+    return;
+  }
+
+  const btn=$("findReceiverBtn");
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="Checking...";
+  }
+
+  try{
+    const {data,error}=await supabaseClient.rpc("get_transfer_recipient",{
+      p_account_number:receiver
+    });
+
+    if(error)throw error;
+
+    const result=Array.isArray(data)?(data[0]||{}):(data||{});
+
+    if(!result.success || !result.account_number){
+      throw new Error(result.message||"Receiver account was not found.");
+    }
+
+    pendingTransfer={
+      receiver_name:result.full_name||"Unknown",
+      receiver_account_number:result.account_number,
+      account_type:result.account_type||"Demo Wallet Account",
+      currency:result.currency||"NGN",
+      status:result.status||"active"
+    };
+
+    showTransferAmountStep();
+
+  }catch(e){
+    notify("Receiver lookup failed: "+(e.message||e),"error",4500);
+    if(btn){
+      btn.disabled=false;
+      btn.textContent="🔎 Find Receiver";
+    }
+  }
+}
+
+function showTransferAmountStep(){
+  if(!pendingTransfer)return;
+
+  openModal(`
+    <h3>Confirm Receiver</h3>
+
+    <div style="background:#eef6ff;border:1px solid #cfe3f5;border-radius:16px;padding:15px;margin:12px 0 18px;">
+      <div style="font-size:12px;color:#666;">Receiver Name</div>
+      <div style="font-size:20px;font-weight:800;color:#0968b4;margin-top:4px;">
+        ${escapeHtml(pendingTransfer.receiver_name)}
+      </div>
+
+      <div style="font-size:12px;color:#666;margin-top:12px;">Account Number</div>
+      <div style="font-size:17px;font-weight:700;">
+        ${escapeHtml(pendingTransfer.receiver_account_number)}
+      </div>
+
+      <div style="font-size:12px;color:#666;margin-top:12px;">Account Type</div>
+      <div style="font-weight:700;">
+        ${escapeHtml(pendingTransfer.account_type)}
+      </div>
+    </div>
+
+    <label>Amount (₦)</label>
+    <input id="transferAmount" type="number" min="1" step="0.01" placeholder="500">
+
+    <div id="transferFinalReview" style="display:none;background:#f7f9fb;border-radius:15px;padding:14px;margin-top:15px;">
+      <div style="font-weight:800;margin-bottom:8px;">Final Review</div>
+      <div class="receipt-line"><b>Receiver</b><span>${escapeHtml(pendingTransfer.receiver_name)}</span></div>
+      <div class="receipt-line"><b>Account</b><span>${escapeHtml(pendingTransfer.receiver_account_number)}</span></div>
+      <div class="receipt-line"><b>Amount</b><span id="reviewTransferAmount">₦0.00</span></div>
+    </div>
+
+    <button onclick="reviewTransferBeforeConfirm()">Review Transfer</button>
+    <button class="secondary" onclick="closeModal()">Cancel</button>
+  `);
+}
+
+function reviewTransferBeforeConfirm(){
+  const amount=Number($("transferAmount").value);
+
+  if(!validAmount(amount)){
+    notify("Enter a valid transfer amount.","error");
+    return;
+  }
+
+  $("reviewTransferAmount").textContent=money(amount);
+  $("transferFinalReview").style.display="block";
+
+  const buttons=document.querySelectorAll("#modalContent > button");
+  if(buttons.length>=2){
+    buttons[0].textContent="✓ Confirm Transfer";
+    buttons[0].onclick=confirmTransfer;
+  }
+
+  notify("Please check the receiver name, account number and amount before confirming.","info",5000);
+}
+
+async function confirmTransfer(){
+  if(!pendingTransfer)return;
+
+  const amount=Number($("transferAmount").value);
+
+  if(!validAmount(amount)){
+    notify("Please enter a valid amount.","error");
+    return;
+  }
+
+  const confirmText=
+    "Confirm demo transfer of "+money(amount)+
+    " to "+pendingTransfer.receiver_name+
+    " (Account "+pendingTransfer.receiver_account_number+")?";
+
+  if(!window.confirm(confirmText))return;
+
+  const btn=document.querySelector("#modalContent > button");
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="Processing...";
+  }
+
   try{
     const {data,error}=await supabaseClient.rpc("transfer_demo_money",{
-      p_receiver_account_number:receiver,p_amount:amount
+      p_receiver_account_number:pendingTransfer.receiver_account_number,
+      p_amount:amount
     });
+
     if(error)throw error;
+
     const result=Array.isArray(data)?(data[0]||{}):(data||{});
-    await refreshBalance();await loadHistory();await createNotification("Transfer successful","Your demo wallet transfer was completed.","success");closeModal();notify("Transfer successful.","success");
-    showReceipt({id:result.reference||result.transaction_id||null,type:"Transfer",amount,
-      partyName:"Demo Recipient",partyAccount:receiver,createdAt:new Date().toISOString(),
-      status:result.status||"success",balanceAfter:currentAccount.balance});
-  }catch(e){notify("Transfer failed: "+e.message,"error",4500);}
+
+    await refreshBalance();
+    await loadHistory();
+    await createNotification(
+      "Transfer successful",
+      "Your demo wallet transfer to "+pendingTransfer.receiver_name+" was completed.",
+      "success"
+    );
+
+    closeModal();
+    notify("Transfer successful.","success");
+
+    showReceipt({
+      id:result.reference||result.transaction_id||result.id||null,
+      type:"Transfer",
+      amount,
+      partyName:pendingTransfer.receiver_name,
+      partyAccount:pendingTransfer.receiver_account_number,
+      createdAt:new Date().toISOString(),
+      status:result.status||"success",
+      balanceAfter:currentAccount.balance
+    });
+
+    pendingTransfer=null;
+
+  }catch(e){
+    notify("Transfer failed: "+(e.message||e),"error",4500);
+    const b=document.querySelector("#modalContent > button");
+    if(b){
+      b.disabled=false;
+      b.textContent="✓ Confirm Transfer";
+    }
+  }
 }
 
 function openWithdraw(){
