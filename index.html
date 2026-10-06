@@ -74,6 +74,13 @@ button.danger{background:#c62828}
 .toast{padding:14px 16px;border-radius:14px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid #0968b4;animation:toastIn .25s ease}
 .toast.success{border-left-color:#1b8a4b}.toast.error{border-left-color:#c62828}.toast.info{border-left-color:#0968b4}.toast.hide{opacity:0;transform:translateY(-8px);transition:.25s}
 @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+.kyc-status{padding:12px 14px;border-radius:12px;background:#f1f5f9;margin:10px 0;font-weight:700}
+.security-note{padding:12px 14px;border-radius:12px;background:#fff7e6;color:#805b00;margin:10px 0;font-size:13px}
+.notification-item{padding:13px 0;border-bottom:1px solid #eee;cursor:pointer}
+.notification-item:last-child{border-bottom:0}
+.notification-unread{background:#eef6ff;border-radius:12px;padding:12px;margin-bottom:8px}
+.badge{display:inline-block;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:700;background:#e8f2fb;color:#155b8c}
 </style>
 </head>
 <body>
@@ -173,6 +180,8 @@ button.danger{background:#c62828}
 <button class="service" onclick="loadHistory()"><span>📜</span><b>History</b></button>
 <button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
 <button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
+<button class="service" onclick="openKYC()"><span>🪪</span><b>KYC</b></button>
+<button class="service" onclick="loadNotifications()"><span>🔔</span><b>Notifications</b></button>
 </div>
 
 <div id="contentPanel" class="panel">
@@ -585,7 +594,7 @@ async function doDeposit(){
     });
     if(error)throw error;
     const result=Array.isArray(data)?(data[0]||{}):(data||{});
-    await refreshBalance();await loadHistory();closeModal();
+    await refreshBalance();await loadHistory();await createNotification("Deposit successful","Your demo wallet deposit was completed.","success");closeModal();
     showReceipt({id:result.reference||result.transaction_id||null,type:"Deposit",
       amount,partyName:"Suhail Wallet",partyAccount:currentAccount.account_number,
       createdAt:new Date().toISOString(),status:result.status||"completed",
@@ -611,7 +620,7 @@ async function doTransfer(){
     });
     if(error)throw error;
     const result=Array.isArray(data)?(data[0]||{}):(data||{});
-    await refreshBalance();await loadHistory();closeModal();notify("Transfer successful.","success");
+    await refreshBalance();await loadHistory();await createNotification("Transfer successful","Your demo wallet transfer was completed.","success");closeModal();notify("Transfer successful.","success");
     showReceipt({id:result.reference||result.transaction_id||null,type:"Transfer",amount,
       partyName:"Demo Recipient",partyAccount:receiver,createdAt:new Date().toISOString(),
       status:result.status||"success",balanceAfter:currentAccount.balance});
@@ -632,7 +641,7 @@ async function doWithdraw(){
     });
     if(error)throw error;
     const result=Array.isArray(data)?(data[0]||{}):(data||{});
-    await refreshBalance();await loadHistory();closeModal();notify("Withdrawal successful.","success");
+    await refreshBalance();await loadHistory();await createNotification("Withdrawal successful","Your demo wallet withdrawal was completed.","success");closeModal();notify("Withdrawal successful.","success");
     showReceipt({id:result.reference||result.transaction_id||null,type:"Withdrawal",amount,
       partyName:"Suhail Wallet",partyAccount:currentAccount.account_number,
       createdAt:new Date().toISOString(),status:result.status||"completed",
@@ -831,6 +840,111 @@ function showReceiptFromHistory(id){
     type:t.transaction_type==="deposit"?"Deposit":t.transaction_type==="withdrawal"?"Withdrawal":received?"Money Received":"Transfer",
     amount:Number(t.amount||0),partyName:received?"Demo Sender":t.transaction_type==="withdrawal"?"Suhail Wallet":"Demo Recipient",
     partyAccount:"",createdAt:t.created_at,status:t.status||"completed",balanceAfter:null});
+}
+
+
+async function openKYC(){
+  try{
+    const {data,error}=await supabaseClient.from("kyc_profiles")
+      .select("*").eq("user_id",currentUser.id).maybeSingle();
+    if(error)throw error;
+    const k=data||{};
+    const status=k.status||"not_submitted";
+    const statusLabel=status==="approved"?"Approved":status==="pending"?"Pending":status==="rejected"?"Rejected":"Not submitted";
+    openModal(`
+      <h3>🪪 KYC Verification</h3>
+      <div class="kyc-status">Status: ${escapeHtml(statusLabel)}</div>
+      <div class="security-note">For this demo, do not enter BVN, NIN, ID numbers, or upload identity documents.</div>
+      <label>Full Name</label>
+      <input id="kycName" value="${escapeHtml(k.full_name||currentProfile?.full_name||"")}" autocomplete="name">
+      <label>Date of Birth</label>
+      <input id="kycDob" type="date" value="${escapeHtml(k.date_of_birth||k.dob||"")}">
+      <label>Address</label>
+      <input id="kycAddress" value="${escapeHtml(k.address||"")}" autocomplete="street-address">
+      <button onclick="submitKYC()">Submit KYC</button>
+      <button class="secondary" onclick="closeModal()">Close</button>
+    `);
+  }catch(e){
+    notify("Could not load KYC: "+e.message,"error",4500);
+  }
+}
+
+async function submitKYC(){
+  const full_name=$("kycName").value.trim();
+  const date_of_birth=$("kycDob").value;
+  const address=$("kycAddress").value.trim();
+  if(!full_name||!date_of_birth||!address){
+    notify("Please complete all KYC fields.","error"); return;
+  }
+  try{
+    const payload={
+      user_id:currentUser.id,
+      full_name,
+      date_of_birth,
+      address,
+      status:"pending"
+    };
+    const {error}=await supabaseClient.from("kyc_profiles").upsert(payload,{onConflict:"user_id"});
+    if(error)throw error;
+    closeModal();
+    notify("KYC submitted successfully. Status: Pending.","success",4500);
+    await createNotification("KYC submitted","Your KYC information was submitted and is pending review.","info");
+  }catch(e){
+    notify("KYC submission failed: "+e.message,"error",5000);
+  }
+}
+
+async function createNotification(title,message,type="info"){
+  try{
+    const {error}=await supabaseClient.from("notifications").insert({
+      user_id:currentUser.id,
+      title,
+      message,
+      type,
+      is_read:false
+    });
+    if(error)console.warn("Notification insert:",error.message);
+  }catch(e){console.warn("Notification error:",e);}
+}
+
+async function loadNotifications(){
+  try{
+    const {data,error}=await supabaseClient.from("notifications")
+      .select("*")
+      .eq("user_id",currentUser.id)
+      .order("created_at",{ascending:false})
+      .limit(50);
+    if(error)throw error;
+    const items=data||[];
+    openModal(`
+      <h3>🔔 Notifications</h3>
+      <div id="notificationsList">
+        ${items.length?items.map(n=>`
+          <div class="notification-item ${n.is_read===false?'notification-unread':''}" onclick="markNotificationRead('${escapeHtml(n.id)}')">
+            <b>${escapeHtml(n.title||"Notification")}</b>
+            <span class="badge">${escapeHtml(n.type||"info")}</span>
+            <div style="margin-top:5px;color:#555;">${escapeHtml(n.message||"")}</div>
+            <small style="color:#888;">${n.created_at?escapeHtml(new Date(n.created_at).toLocaleString()):""}</small>
+          </div>`).join(""):'<div class="empty">No notifications yet.</div>'}
+      </div>
+      <button class="secondary" onclick="closeModal()">Close</button>
+    `);
+  }catch(e){
+    notify("Could not load notifications: "+e.message,"error",4500);
+  }
+}
+
+async function markNotificationRead(id){
+  try{
+    const {error}=await supabaseClient.from("notifications")
+      .update({is_read:true})
+      .eq("id",id)
+      .eq("user_id",currentUser.id);
+    if(error)throw error;
+    await loadNotifications();
+  }catch(e){
+    notify("Could not update notification: "+e.message,"error",4500);
+  }
 }
 
 async function logout(){
