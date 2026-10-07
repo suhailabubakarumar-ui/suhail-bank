@@ -186,6 +186,7 @@ button.danger{background:#c62828}
 <button class="service" onclick="openSecurityCenter()"><span>🛡️</span><b>Security</b></button>
 <button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
 <button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
+<button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
 </div>
 
 <div id="contentPanel" class="panel">
@@ -857,6 +858,25 @@ async function submitSupportTicket(){
   closeModal();
   notify('Support request sent successfully.','success');
  }catch(e){notify('Support request failed: '+(e.message||e),'error',4500);}
+}
+
+async function openMySupportTickets(){
+ try{
+  const {data,error}=await supabaseClient.rpc("get_my_support_tickets");
+  if(error)throw error;
+  const rows=data||[];
+  const html=rows.length?rows.map(t=>`<div style="padding:14px 0;border-bottom:1px solid #eee;text-align:left;">
+   <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+    <b>${escapeHtml(t.subject||"Support Ticket")}</b>
+    <span class="status" style="margin:0;font-size:11px;">${escapeHtml(t.status||"open")}</span>
+   </div>
+   <div style="margin-top:7px;color:#555;">${escapeHtml(t.message||"")}</div>
+   <small style="display:block;margin-top:7px;color:#777;">${escapeHtml(new Date(t.created_at).toLocaleString())}</small>
+  </div>`).join("") : '<div class="empty">No support tickets yet.</div>';
+  openModal(`<h3>🎫 My Support Tickets</h3><div>${html}</div><button class="secondary" onclick="closeModal()">Close</button>`);
+ }catch(e){
+  notify("Could not load support tickets: "+(e.message||e),"error",4500);
+ }
 }
 
 function showProfile(){
