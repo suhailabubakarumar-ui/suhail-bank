@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0b67b2">
-<title>Suhail Bank — Digital Wallet</title>
+<title>Suhail Bank — Digital Banking Demo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
@@ -74,18 +74,6 @@ button.danger{background:#c62828}
 .toast{padding:14px 16px;border-radius:14px;background:#fff;box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid #0968b4;animation:toastIn .25s ease}
 .toast.success{border-left-color:#1b8a4b}.toast.error{border-left-color:#c62828}.toast.info{border-left-color:#0968b4}.toast.hide{opacity:0;transform:translateY(-8px);transition:.25s}
 @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-
-.kyc-status{padding:12px 14px;border-radius:12px;background:#f1f5f9;margin:10px 0;font-weight:700}
-.security-note{padding:12px 14px;border-radius:12px;background:#fff7e6;color:#805b00;margin:10px 0;font-size:13px}
-.notification-item{padding:13px 0;border-bottom:1px solid #eee;cursor:pointer}
-.notification-item:last-child{border-bottom:0}
-.notification-unread{background:#eef6ff;border-radius:12px;padding:12px;margin-bottom:8px}
-.badge{display:inline-block;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:700;background:#e8f2fb;color:#155b8c}
-</style>
-
-<style>
-.kyc-admin-card{border:1px solid #d9e7f3;background:#f8fbff;border-radius:16px;padding:14px;margin:10px 0}.kyc-admin-row{border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin:10px 0;background:#fff}.kyc-admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.kyc-admin-actions button{margin-top:10px}.kyc-review-note{min-height:90px;resize:vertical}.status-approved{background:#e7f7ec;color:#19713a}
-.security-card{border:1px solid #d9e7f3;background:#f8fbff;border-radius:16px;padding:14px;margin:10px 0}.security-good{color:#19713a;font-weight:700}.security-warn{color:#805b00;font-weight:700}.status-pending{background:#fff7e6;color:#805b00}.status-rejected{background:#fde8ea;color:#a51f35}
 </style>
 </head>
 <body>
@@ -94,7 +82,7 @@ button.danger{background:#c62828}
 <section id="authPage" class="page">
 <div class="card">
 <h1 class="brand">Suhail Bank</h1>
-<p id="authSubtitle" class="subtitle">Login to Wallet Account</p>
+<p id="authSubtitle" class="subtitle">Login to Demo Account</p>
 <div id="authMsg" class="msg"></div><p style="text-align:center;color:#777;font-size:12px;margin:0 0 10px">Learning project — not a real bank.</p>
 
 <form id="registerForm">
@@ -126,7 +114,7 @@ button.danger{background:#c62828}
 
 <button type="submit">Login</button>
 <div class="link" onclick="showForgot()">Forgot Password?</div>
-<div class="link" onclick="showRegister()">Create Wallet Account</div>
+<div class="link" onclick="showRegister()">Create Demo Account</div>
 </form>
 
 <form id="setupForm" class="hidden">
@@ -168,7 +156,7 @@ button.danger{background:#c62828}
 </div>
 
 <div class="balance">
-<small>Available Wallet Balance</small>
+<small>Available Demo Balance</small>
 <h1 id="balance">₦0.00</h1>
 <div class="account">Account No: <b id="accountNumber">—</b></div>
 </div>
@@ -178,6 +166,11 @@ button.danger{background:#c62828}
 <p>Your digital banking demo is ready.</p>
 </div>
 
+<div class="panel" id="securitySummaryPanel">
+<h3>🛡️ Account Security</h3>
+<div id="securitySummary" class="profile-row">Loading security status...</div>
+</div>
+
 <div class="grid">
 <button class="service" onclick="openDeposit()"><span>💰</span><b>Deposit</b></button>
 <button class="service" onclick="openTransfer()"><span>🔄</span><b>Transfer</b></button>
@@ -185,11 +178,7 @@ button.danger{background:#c62828}
 <button class="service" onclick="loadHistory()"><span>📜</span><b>History</b></button>
 <button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
 <button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
-<button class="service" onclick="openSecurity()"><span>🔐</span><b>Security</b></button>
-<button class="service" onclick="openKYC()"><span>🪪</span><b>KYC</b></button>
-<button class="service" onclick="loadNotifications()"><span>🔔</span><b>Notifications</b></button>
-<button id="kycAdminBtn" class="service hidden" onclick="openKYCAdmin()"><span>🛡️</span><b>KYC Admin</b></button>
-
+<button class="service" onclick="openSecurityCenter()"><span>🛡️</span><b>Security</b></button>
 </div>
 
 <div id="contentPanel" class="panel">
@@ -246,12 +235,12 @@ function hideForms(){
 }
 function showRegister(){
  clearMsg();hideForms();
- $("authSubtitle").textContent="Create Wallet Account";
+ $("authSubtitle").textContent="Create Demo Account";
  $("registerForm").classList.remove("hidden");
 }
 function showLogin(){
  clearMsg();hideForms();
- $("authSubtitle").textContent="Login to Wallet Account";
+ $("authSubtitle").textContent="Login to Demo Account";
  $("loginForm").classList.remove("hidden");
 }
 function showForgot(){
@@ -287,26 +276,22 @@ function openModal(html){
 
 async function createProfileAndAccount(name,phone,pin){
   if(!currentUser)throw new Error("No authenticated user.");
-  const {error:profileError}=await supabaseClient.from("users").upsert({
-    id:currentUser.id,full_name:name.trim(),phone:phone.trim(),
-    email:currentUser.email||"",transaction_pin:pin
+
+  const {data,error}=await supabaseClient.rpc("create_demo_account",{
+    p_full_name:name.trim(),
+    p_phone:phone.trim(),
+    p_transaction_pin:pin
   });
-  if(profileError)throw profileError;
-  const {data:existing,error:findError}=await supabaseClient.from("accounts")
-    .select("id,user_id,account_number,balance,status,currency,created_at")
-    .eq("user_id",currentUser.id).maybeSingle();
-  if(findError)throw findError;
-  if(existing){currentAccount=existing;return existing;}
-  let created=null,lastError=null;
-  for(let i=0;i<5;i++){
-    const accountNumber="30"+Math.floor(100000000+Math.random()*900000000);
-    const {data,error}=await supabaseClient.from("accounts").insert({
-      user_id:currentUser.id,account_number:accountNumber,balance:0,status:"active",currency:"NGN"
-    }).select("id,user_id,account_number,balance,status,currency,created_at").single();
-    if(!error){created=data;break;} lastError=error;
-  }
-  if(!created)throw lastError||new Error("Could not create wallet account.");
-  currentAccount=created;return created;
+
+  if(error)throw error;
+
+  const result=Array.isArray(data)?(data[0]||{}):(data||{});
+  await loadUserData();
+
+  return {
+    ...result,
+    account_number:result.account_number||currentAccount?.account_number
+  };
 }
 
 async function loadUserData(){
@@ -322,7 +307,7 @@ async function loadUserData(){
 
  const {data:account,error:accountError}=await supabaseClient
    .from("accounts")
-   .select("id,user_id,account_number,balance,status,currency,created_at")
+   .select("id,user_id,account_number,balance")
    .eq("user_id",currentUser.id)
    .maybeSingle();
 
@@ -337,7 +322,7 @@ async function showAccountSetup(){
  clearMsg();
  hideForms();
 
- $("authSubtitle").textContent="Complete Wallet Account";
+ $("authSubtitle").textContent="Complete Demo Account";
  $("setupForm").classList.remove("hidden");
 
  if(currentUser?.user_metadata?.full_name){
@@ -385,7 +370,7 @@ async function startApp(){
  $("accountNumber").textContent=currentAccount.account_number;
  $("balance").textContent=money(currentAccount.balance);
  await loadHistory();
- await loadKYCAdminButton();
+ await loadSecuritySummary();
 }
 
 async function checkSession(){
@@ -594,331 +579,235 @@ function openDeposit(){
  `);
 }
 
-async function doDeposit(){
-  const amount=Number($("depositAmount").value);
-  if(!validAmount(amount)){notify("Enter a valid amount.","error");return;}
-  try{
-    const {data,error}=await supabaseClient.rpc("deposit_demo_money",{
-      p_amount:amount,p_description:"Wallet deposit"
-    });
-    if(error)throw error;
-    const result=Array.isArray(data)?(data[0]||{}):(data||{});
-    await refreshBalance();await loadHistory();await createNotification("Deposit successful","Your demo wallet deposit was completed.","success");closeModal();
-    showReceipt({id:result.reference||result.transaction_id||null,type:"Deposit",
-      amount,partyName:"Suhail Wallet",partyAccount:currentAccount.account_number,
-      createdAt:new Date().toISOString(),status:result.status||"completed",
-      balanceAfter:currentAccount.balance});
-  }catch(e){notify("Deposit failed: "+e.message,"error",4500);}
+async function getLatestTransaction(type, amount, afterIso){
+  const {data,error}=await supabaseClient.from("transactions")
+    .select("id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number")
+    .eq("account_id",currentAccount.id)
+    .eq("transaction_type",type)
+    .eq("amount",amount)
+    .gte("created_at",afterIso)
+    .order("created_at",{ascending:false})
+    .limit(1);
+  if(error)throw error;
+  return data?.[0]||null;
 }
 
-let pendingTransfer=null;
+async function doDeposit(){
+ const amount=Number($("depositAmount").value);
+
+ if(!validAmount(amount)){notify("Enter a valid amount.","error");return;}
+
+ try{
+   const startedAt=new Date().toISOString();
+   const {data,error}=await supabaseClient.rpc("deposit_money",{p_amount:amount});
+   if(error)throw error;
+
+   await refreshBalance();
+   const tx=await getLatestTransaction("Deposit",amount,startedAt);
+   await loadHistory();
+   closeModal();
+
+   showReceipt({
+     id:tx?.id||((Array.isArray(data)?data[0]:data)?.transaction_id)||((Array.isArray(data)?data[0]:data)?.id)||null,
+     type:"Deposit",
+     amount,
+     partyName:"Demo Deposit",
+     partyAccount:currentAccount.account_number,
+     createdAt:tx?.created_at||new Date().toISOString(),
+     balanceAfter:currentAccount.balance
+   });
+
+ }catch(e){
+   notify("Deposit failed: "+e.message,"error",4500);
+ }
+}
 
 function openTransfer(){
-  pendingTransfer=null;
-  openModal(`
-    <h3>Smart Transfer</h3>
-    <p style="color:#666;font-size:13px;margin-top:-4px;">
-      First verify the receiver. No demo money will be sent until you press <b>Confirm Transfer</b>.
-    </p>
-
-    <label>Receiver Account Number</label>
-    <input id="receiverAccount" inputmode="numeric" maxlength="10"
-      placeholder="3012345678" autocomplete="off">
-
-    <button id="findReceiverBtn" onclick="findTransferRecipient()">🔎 Find Receiver</button>
-    <button class="secondary" onclick="closeModal()">Cancel</button>
-  `);
-}
-
-async function findTransferRecipient(){
-  const receiver=$("receiverAccount").value.trim();
-
-  if(!/^\d{10}$/.test(receiver)){
-    notify("Account number must be exactly 10 digits.","error");
-    return;
-  }
-
-  if(receiver===currentAccount.account_number){
-    notify("You cannot transfer to your own account.","error");
-    return;
-  }
-
-  const btn=$("findReceiverBtn");
-  if(btn){
-    btn.disabled=true;
-    btn.textContent="Checking...";
-  }
-
-  try{
-    const {data,error}=await supabaseClient.rpc("get_transfer_recipient",{
-      p_account_number:receiver
-    });
-
-    if(error)throw error;
-
-    const result=Array.isArray(data)?(data[0]||{}):(data||{});
-
-    if(!result.success || !result.account_number){
-      throw new Error(result.message||"Receiver account was not found.");
-    }
-
-    pendingTransfer={
-      receiver_name:result.full_name||"Unknown",
-      receiver_account_number:result.account_number,
-      account_type:result.account_type||"Demo Wallet Account",
-      currency:result.currency||"NGN",
-      status:result.status||"active"
-    };
-
-    showTransferAmountStep();
-
-  }catch(e){
-    notify("Receiver lookup failed: "+(e.message||e),"error",4500);
-    if(btn){
-      btn.disabled=false;
-      btn.textContent="🔎 Find Receiver";
-    }
-  }
-}
-
-function showTransferAmountStep(){
-  if(!pendingTransfer)return;
-
-  openModal(`
-    <h3>Confirm Receiver</h3>
-
-    <div style="background:#eef6ff;border:1px solid #cfe3f5;border-radius:16px;padding:15px;margin:12px 0 18px;">
-      <div style="font-size:12px;color:#666;">Receiver Name</div>
-      <div style="font-size:20px;font-weight:800;color:#0968b4;margin-top:4px;">
-        ${escapeHtml(pendingTransfer.receiver_name)}
-      </div>
-
-      <div style="font-size:12px;color:#666;margin-top:12px;">Account Number</div>
-      <div style="font-size:17px;font-weight:700;">
-        ${escapeHtml(pendingTransfer.receiver_account_number)}
-      </div>
-
-      <div style="font-size:12px;color:#666;margin-top:12px;">Account Type</div>
-      <div style="font-weight:700;">
-        ${escapeHtml(pendingTransfer.account_type)}
-      </div>
-    </div>
-
-    <label>Amount (₦)</label>
-    <input id="transferAmount" type="number" min="1" step="0.01" placeholder="500">
-
-    <div id="transferFinalReview" style="display:none;background:#f7f9fb;border-radius:15px;padding:14px;margin-top:15px;">
-      <div style="font-weight:800;margin-bottom:8px;">Final Review</div>
-      <div class="receipt-line"><b>Receiver</b><span>${escapeHtml(pendingTransfer.receiver_name)}</span></div>
-      <div class="receipt-line"><b>Account</b><span>${escapeHtml(pendingTransfer.receiver_account_number)}</span></div>
-      <div class="receipt-line"><b>Amount</b><span id="reviewTransferAmount">₦0.00</span></div>
-    </div>
-
-    <button onclick="reviewTransferBeforeConfirm()">Review Transfer</button>
-    <button class="secondary" onclick="closeModal()">Cancel</button>
-  `);
-}
-
-function reviewTransferBeforeConfirm(){
-  const amount=Number($("transferAmount").value);
-
-  if(!validAmount(amount)){
-    notify("Enter a valid transfer amount.","error");
-    return;
-  }
-
-  $("reviewTransferAmount").textContent=money(amount);
-  $("transferFinalReview").style.display="block";
-
-  const buttons=document.querySelectorAll("#modalContent > button");
-  if(buttons.length>=2){
-    buttons[0].textContent="✓ Confirm Transfer";
-    buttons[0].onclick=confirmTransfer;
-  }
-
-  notify("Please check the receiver name, account number and amount before confirming.","info",5000);
-}
-
-async function confirmTransfer(){
-  if(!pendingTransfer)return;
-
-  const amount=Number($("transferAmount").value);
-
-  if(!validAmount(amount)){
-    notify("Please enter a valid amount.","error");
-    return;
-  }
-
-  const confirmText=
-    "Confirm demo transfer of "+money(amount)+
-    " to "+pendingTransfer.receiver_name+
-    " (Account "+pendingTransfer.receiver_account_number+")?";
-
-  if(!window.confirm(confirmText))return;
-
-  const btn=document.querySelector("#modalContent > button");
-  if(btn){
-    btn.disabled=true;
-    btn.textContent="Processing...";
-  }
-
-  try{
-    const {data,error}=await supabaseClient.rpc("transfer_demo_money",{
-      p_receiver_account_number:pendingTransfer.receiver_account_number,
-      p_amount:amount
-    });
-
-    if(error)throw error;
-
-    const result=Array.isArray(data)?(data[0]||{}):(data||{});
-
-    await refreshBalance();
-    await loadHistory();
-    await createNotification(
-      "Transfer successful",
-      "Your demo wallet transfer to "+pendingTransfer.receiver_name+" was completed.",
-      "success"
-    );
-
-    closeModal();
-    notify("Transfer successful.","success");
-
-    showReceipt({
-      id:result.reference||result.transaction_id||result.id||null,
-      type:"Transfer",
-      amount,
-      partyName:pendingTransfer.receiver_name,
-      partyAccount:pendingTransfer.receiver_account_number,
-      createdAt:new Date().toISOString(),
-      status:result.status||"success",
-      balanceAfter:currentAccount.balance
-    });
-
-    pendingTransfer=null;
-
-  }catch(e){
-    notify("Transfer failed: "+(e.message||e),"error",4500);
-    const b=document.querySelector("#modalContent > button");
-    if(b){
-      b.disabled=false;
-      b.textContent="✓ Confirm Transfer";
-    }
-  }
-}
-
-function openWithdraw(){
-  openModal(`<h3>Withdraw Wallet Money</h3>
-  <label>Amount (₦)</label><input id="withdrawAmount" type="number" min="1" step="0.01" placeholder="500">
-  <button class="danger" onclick="doWithdraw()">Withdraw</button><button class="secondary" onclick="closeModal()">Cancel</button>`);
-}
-async function doWithdraw(){
-  const amount=Number($("withdrawAmount").value);
-  if(!validAmount(amount)){notify("Enter a valid amount.","error");return;}
-  try{
-    const {data,error}=await supabaseClient.rpc("withdraw_demo_money",{
-      p_amount:amount,p_description:"Wallet withdrawal"
-    });
-    if(error)throw error;
-    const result=Array.isArray(data)?(data[0]||{}):(data||{});
-    await refreshBalance();await loadHistory();await createNotification("Withdrawal successful","Your demo wallet withdrawal was completed.","success");closeModal();notify("Withdrawal successful.","success");
-    showReceipt({id:result.reference||result.transaction_id||null,type:"Withdrawal",amount,
-      partyName:"Suhail Wallet",partyAccount:currentAccount.account_number,
-      createdAt:new Date().toISOString(),status:result.status||"completed",
-      balanceAfter:currentAccount.balance});
-  }catch(e){notify("Withdrawal failed: "+e.message,"error",4500);}
-}
-
-async function loadHistory(){
-  if(!currentAccount)return;
-  const box=$("historyList");box.innerHTML='<div class="empty">Loading...</div>';
-  try{
-    const {data,error}=await supabaseClient.from("transaction_journal")
-      .select("id,reference,transaction_type,status,amount,currency,sender_account_id,receiver_account_id,description,created_at,completed_at")
-      .or(`sender_account_id.eq.${currentAccount.id},receiver_account_id.eq.${currentAccount.id}`)
-      .order("created_at",{ascending:false}).limit(100);
-    if(error)throw error;
-    window.historyTransactions={};
-    window.allHistoryTransactions=(data||[]).map(t=>({...t,
-      direction:t.receiver_account_id===currentAccount.id?"received":"sent",
-      display_type:t.transaction_type==="deposit"?"Deposit":
-        t.transaction_type==="withdrawal"?"Withdrawal":
-        t.receiver_account_id===currentAccount.id?"Money Received":"Money Sent"
-    }));
-    window.allHistoryTransactions.forEach(t=>{window.historyTransactions[t.id]=t;});
-    filterHistory();
-  }catch(e){box.innerHTML='<div class="empty">Could not load history: '+escapeHtml(e.message)+'</div>';}
-}
-
-function filterHistory(){
-  const box=$("historyList"),data=window.allHistoryTransactions||[];
-  const search=(($("historySearch")||{}).value||"").trim().toLowerCase();
-  const type=(($("historyType")||{}).value||"all"),date=(($("historyDate")||{}).value||"");
-  const filtered=data.filter(t=>{
-    const raw=(t.transaction_type||"").toLowerCase();
-    const hay=[t.transaction_type,t.display_type,t.reference,t.description,t.amount,t.status].join(" ").toLowerCase();
-    let mt=true;
-    if(type==="received")mt=t.direction==="received"&&raw==="transfer";
-    else if(type==="sent")mt=t.direction==="sent"&&raw==="transfer";
-    else if(type==="deposit")mt=raw==="deposit";
-    else if(type==="withdrawal")mt=raw==="withdrawal";
-    return (!search||hay.includes(search))&&mt&&(!date||new Date(t.created_at).toISOString().slice(0,10)===date);
-  });
-  if(!filtered.length){box.innerHTML='<div class="empty">No matching transactions.</div>';return;}
-  box.innerHTML=filtered.map(t=>{
-    const n=Number(t.amount||0),received=t.direction==="received",withdrawal=t.transaction_type==="withdrawal";
-    const cls=(!received&&t.transaction_type==="transfer"||withdrawal)?"neg":"pos";
-    const sign=received||t.transaction_type==="deposit"?"+":"-";
-    return `<div style="padding:14px 0;border-bottom:1px solid #eee;cursor:pointer;" onclick="showTransactionDetails('${escapeHtml(t.id)}')">
-      <div style="display:flex;justify-content:space-between;gap:12px;"><div><b>${escapeHtml(t.display_type)}</b><br>
-      <small>${escapeHtml(t.description||t.reference||"")}</small><br><small>${new Date(t.created_at).toLocaleString()}</small></div>
-      <div style="text-align:right;"><strong class="${cls}">${sign}${money(n)}</strong><br>
-      <button type="button" style="width:auto;padding:8px 10px;font-size:13px;" onclick="event.stopPropagation();showReceiptFromHistory('${escapeHtml(t.id)}')">Receipt / Print</button></div></div></div>`;
-  }).join("");
-}
-function showTransactionDetails(id){
-  const t=(window.historyTransactions||{})[id];if(!t){notify("Transaction details are not available.","error");return;}
-  const direction=t.direction==="received"?"Money Received":t.transaction_type==="withdrawal"?"Money Withdrawn":t.transaction_type==="deposit"?"Money Deposited":"Money Sent";
-  openModal(`<h3>Transaction Details</h3>
-  <div class="receipt-line"><b>Direction</b><span>${escapeHtml(direction)}</span></div>
-  <div class="receipt-line"><b>Type</b><span>${escapeHtml(t.transaction_type||"Transaction")}</span></div>
-  <div class="receipt-line"><b>Amount</b><span>${money(t.amount)}</span></div>
-  <div class="receipt-line"><b>Status</b><span>${escapeHtml(t.status||"—")}</span></div>
-  <div class="receipt-line"><b>Reference</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(t.reference||t.id||"—")}</span></div>
-  <div class="receipt-line"><b>Description</b><span>${escapeHtml(t.description||"—")}</span></div>
-  <div class="receipt-line"><b>Date & Time</b><span>${new Date(t.created_at).toLocaleString()}</span></div>
-  <button onclick="showReceiptFromHistory('${escapeHtml(t.id)}')">Receipt / Print</button><button class="secondary" onclick="closeModal()">Close</button>`);
-}
-
-function showProfile(){
- const created=currentAccount?.created_at?new Date(currentAccount.created_at).toLocaleString():"Not available";
  openModal(`
- <h3>👤 Profile & Account</h3>
- <div class="security-card">
-   <div class="profile-row"><b>Full Name:</b> ${escapeHtml(currentProfile?.full_name)}</div>
-   <div class="profile-row"><b>Phone:</b> ${escapeHtml(currentProfile?.phone)}</div>
-   <div class="profile-row"><b>Email:</b> ${escapeHtml(currentUser?.email||"")}</div>
-   <div class="profile-row"><b>Account Number:</b> ${escapeHtml(currentAccount?.account_number)}</div>
-   <div class="profile-row"><b>Account Type:</b> Demo Wallet Account</div>
-   <div class="profile-row"><b>Currency:</b> ${escapeHtml(currentAccount?.currency||"NGN")}</div>
-   <div class="profile-row"><b>Status:</b> <span class="security-good">${escapeHtml(currentAccount?.status||"active")}</span></div>
-   <div class="profile-row"><b>Created:</b> ${escapeHtml(created)}</div>
- </div>
- <button onclick="openSecurity()">🔐 Security Settings</button>
- <button class="secondary" onclick="closeModal()">Close</button>
+ <h3>Transfer Demo Money</h3>
+ <label>Receiver Account Number</label>
+ <input id="receiverAccount" inputmode="numeric" maxlength="10" placeholder="3012345678">
+
+ <label>Amount (₦)</label>
+ <input id="transferAmount" type="number" min="1" step="0.01" placeholder="500">
+
+ <label>4-Digit Transaction PIN</label>
+ <div class="password-wrap"><input id="transferPin" type="password" inputmode="numeric" maxlength="4"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
+
+ <button onclick="doTransfer()">Transfer</button>
+ <button class="secondary" onclick="closeModal()">Cancel</button>
  `);
 }
 
-function openSecurity(){
+async function doTransfer(){
+ const receiver=$("receiverAccount").value.trim();
+ const amount=Number($("transferAmount").value);
+ const pin=$("transferPin").value;
+
+ if(!/^\d{10}$/.test(receiver)){
+   notify("Account number must be 10 digits.","error");return;
+ }
+ if(receiver===currentAccount.account_number){
+   notify("You cannot transfer to your own account.","error");return;
+ }
+ if(!validAmount(amount)||!validPin(pin)){
+   notify("Enter a valid amount and 4-digit PIN.","error");return;
+ }
+
+ try{
+   const {data,error}=await supabaseClient.rpc("transfer_money",{
+     p_receiver_account_number:receiver,
+     p_amount:amount,
+     p_pin:pin
+   });
+
+   if(error)throw error;
+
+   const result=Array.isArray(data)?(data[0]||{}):(data||{});
+
+   await refreshBalance();
+   await loadHistory();
+   notify("Transfer successful.","success");
+   closeModal();
+
+   showReceipt({
+     id:result.transaction_id||result.id||null,
+     type:"Transfer",
+     amount,
+     partyName:result.receiver_name||"Demo Recipient",
+     partyAccount:result.receiver_account_number||receiver,
+     createdAt:new Date().toISOString()
+   });
+
+ }catch(e){
+   notify("Transfer failed: "+e.message,"error",4500);
+ }
+}
+
+function openWithdraw(){
  openModal(`
- <h3>🔐 Security</h3>
- <div class="security-card">
-   <div class="profile-row"><b>Login:</b> <span class="security-good">Authenticated</span></div>
-   <div class="profile-row"><b>Wallet Status:</b> <span class="security-good">${escapeHtml(currentAccount?.status||"active")}</span></div>
-   <div class="profile-row"><b>Transaction PIN:</b> •••• (protected)</div>
- </div>
- <div class="security-note">For this demo, never share your password or transaction PIN with anyone. This project is not a real bank.</div>
+ <h3>Withdraw Demo Money</h3>
+ <label>Amount (₦)</label>
+ <input id="withdrawAmount" type="number" min="1" step="0.01" placeholder="500">
+
+ <label>4-Digit Transaction PIN</label>
+ <div class="password-wrap"><input id="withdrawPin" type="password" inputmode="numeric" maxlength="4"><button type="button" class="password-toggle" aria-label="Show password" onclick="togglePassword(this)">👁️</button></div>
+
+ <button class="danger" onclick="doWithdraw()">Withdraw</button>
+ <button class="secondary" onclick="closeModal()">Cancel</button>
+ `);
+}
+
+async function doWithdraw(){
+ const amount=Number($("withdrawAmount").value);
+ const pin=$("withdrawPin").value;
+
+ if(!validAmount(amount)||!validPin(pin)){
+   notify("Enter a valid amount and 4-digit PIN.","error");return;
+ }
+
+ try{
+   const {error}=await supabaseClient.rpc("withdraw_money",{
+     p_amount:amount,
+     p_pin:pin
+   });
+
+   if(error)throw error;
+
+   await refreshBalance();
+   await loadHistory();
+   notify("Withdrawal successful.","success");
+   closeModal();
+
+   showReceipt({
+     id:null,
+     type:"Withdrawal",
+     amount,
+     partyName:"Demo Withdrawal",
+     partyAccount:currentAccount.account_number,
+     createdAt:new Date().toISOString()
+   });
+
+ }catch(e){
+   notify("Withdrawal failed: "+e.message,"error",4500);
+ }
+}
+
+async function loadHistory(){
+ if(!currentAccount)return;
+ const box=$("historyList"); box.innerHTML='<div class="empty">Loading...</div>';
+ try{
+  const {data,error}=await supabaseClient.from("transactions").select("id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number").eq("account_id",currentAccount.id).order("created_at",{ascending:false}).limit(100);
+  if(error)throw error;
+  window.historyTransactions={}; window.allHistoryTransactions=data||[];
+  (data||[]).forEach(t=>{if(t.id)window.historyTransactions[t.id]=t;}); filterHistory();
+ }catch(e){box.innerHTML='<div class="empty">Could not load history: '+escapeHtml(e.message)+'</div>';}
+}
+
+function filterHistory(){
+ const box=$("historyList"), data=window.allHistoryTransactions||[];
+ const search=(($("historySearch")||{}).value||"").trim().toLowerCase(), type=(($("historyType")||{}).value||"all"), date=(($("historyDate")||{}).value||"");
+ const filtered=data.filter(t=>{
+  const raw=(t.transaction_type||"").toLowerCase(), hay=[t.transaction_type,t.counterparty_name,t.counterparty_account_number,t.id,t.amount].join(" ").toLowerCase();
+  let mt=true; if(type==="received")mt=raw.includes("receive"); else if(type==="sent")mt=raw.includes("transfer")&&!raw.includes("receive"); else if(type==="deposit")mt=raw.includes("deposit"); else if(type==="withdrawal")mt=raw.includes("withdraw");
+  return (!search||hay.includes(search))&&mt&&(!date||new Date(t.created_at).toISOString().slice(0,10)===date);
+ });
+ if(!filtered.length){box.innerHTML='<div class="empty">No matching transactions.</div>';return;}
+ box.innerHTML=filtered.map(t=>{
+  const n=Number(t.amount||0), raw=(t.transaction_type||"Transaction").toLowerCase(), received=raw.includes("receive"), transfer=raw.includes("transfer"), withdrawal=raw.includes("withdraw");
+  const cls=(withdrawal||transfer&&!received)?"neg":"pos", sign=received?"+":(withdrawal||transfer?"-":"+");
+  return `<div class="tx" style="padding:14px 0;border-bottom:1px solid #eee;cursor:pointer;" onclick="showTransactionDetails('${escapeHtml(t.id||"")}')"><div style="flex:1;min-width:0;"><b>${escapeHtml(t.transaction_type||"Transaction")}</b><br>${t.counterparty_name?`<small>${received?"From":"Party"}: ${escapeHtml(t.counterparty_name)}</small><br>`:""}${t.counterparty_account_number?`<small>${received?"Sender":"Account"}: ${escapeHtml(t.counterparty_account_number)}</small><br>`:""}<small>${new Date(t.created_at).toLocaleString()}</small></div><div style="text-align:right;min-width:125px;"><strong class="${cls}">${sign}${money(n)}</strong><button type="button" style="width:auto;padding:8px 10px;font-size:13px;margin-top:8px;" onclick="event.stopPropagation();showReceiptFromHistory('${escapeHtml(t.id||"")}')">Receipt / Print</button></div></div>`;
+ }).join("");
+}
+
+function showTransactionDetails(id){
+ const t=(window.historyTransactions||{})[id]; if(!t){notify("Transaction details are not available.","error");return;}
+ const raw=(t.transaction_type||"Transaction").toLowerCase(), received=raw.includes("receive"), direction=received?"Money Received":(raw.includes("withdraw")?"Money Withdrawn":(raw.includes("deposit")?"Money Deposited":"Money Sent"));
+ openModal(`<h3>Transaction Details</h3><div class="receipt-line"><b>Direction</b><span>${escapeHtml(direction)}</span></div><div class="receipt-line"><b>Type</b><span>${escapeHtml(t.transaction_type||"Transaction")}</span></div><div class="receipt-line"><b>Amount</b><span>${money(t.amount)}</span></div>${t.counterparty_name?`<div class="receipt-line"><b>${received?"Sender":"Party"}</b><span>${escapeHtml(t.counterparty_name)}</span></div>`:""}${t.counterparty_account_number?`<div class="receipt-line"><b>${received?"Sender Account":"Account"}</b><span>${escapeHtml(t.counterparty_account_number)}</span></div>`:""}<div class="receipt-line"><b>Transaction ID</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(t.id||"—")}</span></div><div class="receipt-line"><b>Date & Time</b><span>${new Date(t.created_at).toLocaleString()}</span></div><button onclick="showReceiptFromHistory('${escapeHtml(t.id||"")}')">Receipt / Print</button><button class="secondary" onclick="closeModal()">Close</button>`);
+}
+
+async function loadSecuritySummary(){
+ const box=$("securitySummary");
+ if(!box||!currentUser)return;
+ try{
+  const {data,error}=await supabaseClient.rpc("get_my_security_status");
+  if(error)throw error;
+  const r=Array.isArray(data)?(data[0]||{}):(data||{});
+  const kyc=r.kyc_status||"not submitted";
+  const kycLabel=kyc==='approved'?'🟢 Approved':kyc==='pending'?'🟡 Pending':kyc==='rejected'?'🔴 Rejected':'⚪ Not submitted';
+  box.innerHTML=`<div style="display:grid;gap:8px">
+    <div><b>Account Status:</b> ${escapeHtml(r.account_status||"Unknown")}</div>
+    <div><b>KYC Status:</b> ${escapeHtml(kycLabel)}</div>
+    <div><b>Notifications:</b> ${Number(r.unread_notifications||0)} unread</div>
+    <div><b>Account Created:</b> ${r.account_created_at?escapeHtml(new Date(r.account_created_at).toLocaleString()):"Not available"}</div>
+  </div>`;
+ }catch(e){
+  box.textContent="Could not load security status: "+(e.message||e);
+ }
+}
+
+function openSecurityCenter(){
+ const box=document.createElement("div");
+ box.innerHTML=`<h3>🛡️ Security Center</h3>
+ <div class="profile-row"><b>Login:</b> Active</div>
+ <div class="profile-row"><b>Account:</b> ${escapeHtml(currentAccount?.account_number||"—")}</div>
+ <div class="profile-row"><b>Account Status:</b> ${escapeHtml(currentAccount?.status||"active")}</div>
+ <div class="profile-row"><b>Currency:</b> ${escapeHtml(currentAccount?.currency||"NGN")}</div>
+ <div class="profile-row"><b>Transaction PIN:</b> Protected</div>
+ <p style="font-size:12px;color:#666;margin-top:12px">Demo security center. Never share your password or transaction PIN.</p>
  <button onclick="openPin()">🔢 Change Transaction PIN</button>
- <button class="secondary" onclick="showProfile()">Back to Profile</button>
+ <button class="secondary" onclick="closeModal()">Close</button>`;
+ openModal(box.innerHTML);
+}
+
+function showProfile(){
+ openModal(`
+ <h3>Profile</h3>
+ <div class="profile-row"><b>Name:</b> ${escapeHtml(currentProfile?.full_name)}</div>
+ <div class="profile-row"><b>Phone:</b> ${escapeHtml(currentProfile?.phone)}</div>
+ <div class="profile-row"><b>Email:</b> ${escapeHtml(currentUser?.email||"")}</div>
+ <div class="profile-row"><b>Account:</b> ${escapeHtml(currentAccount?.account_number)}</div>
+ <button class="secondary" onclick="closeModal()">Close</button>
  `);
 }
 
@@ -990,7 +879,7 @@ function showReceipt(r){
  <div class="receipt" id="printReceipt">
    <div style="font-size:13px;font-weight:700;letter-spacing:1px;">SUHAIL BANK</div>
    <div class="logo">Transaction Receipt</div>
-   <p style="margin:3px 0;color:#666;font-size:12px;">Digital Wallet</p>
+   <p style="margin:3px 0;color:#666;font-size:12px;">Digital Banking Demo</p>
    <span class="status">${escapeHtml(r.status||"Successful")}</span>
 
    <div style="margin:12px 0 18px;padding:16px;border:1px solid #ddd;border-radius:14px;">
@@ -1001,7 +890,7 @@ function showReceipt(r){
 
    <div class="receipt-section-title">Transaction Details</div>
    <div class="receipt-line"><b>Transaction Type</b><span>${escapeHtml(type)}</span></div>
-   <div class="receipt-line"><b>Reference</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(txId)}</span></div>
+   <div class="receipt-line"><b>Transaction ID</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(txId)}</span></div>
    <div class="receipt-line"><b>Amount</b><span>${escapeHtml(money(r.amount))}</span></div>
    <div class="receipt-line"><b>Status</b><span>${escapeHtml(r.status||"Successful")}</span></div>
    <div class="receipt-line"><b>Date</b><span>${escapeHtml(d.toLocaleDateString())}</span></div>
@@ -1012,7 +901,7 @@ function showReceipt(r){
    <div class="receipt-line"><b>Phone</b><span>${escapeHtml(customerPhone)}</span></div>
    <div class="receipt-line"><b>Email</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(customerEmail)}</span></div>
    <div class="receipt-line"><b>My Account</b><span>${escapeHtml(myAccount)}</span></div>
-   <div class="receipt-line"><b>Account Type</b><span>Wallet Account</span></div>
+   <div class="receipt-line"><b>Account Type</b><span>Demo Account</span></div>
 
    ${r.partyName?`<div class="receipt-section-title">Counterparty Details</div><div class="receipt-line"><b>${escapeHtml(counterLabel)}</b><span>${escapeHtml(r.partyName)}</span></div>`:""}
    ${r.partyAccount?`<div class="receipt-line"><b>${escapeHtml(counterLabel)} Account</b><span>${escapeHtml(r.partyAccount)}</span></div>`:""}
@@ -1035,192 +924,17 @@ function showReceipt(r){
 }
 
 function showReceiptFromHistory(id){
-  const t=(window.historyTransactions||{})[id];if(!t){notify("Transaction details are not available.","error");return;}
-  const received=t.direction==="received";
-  showReceipt({id:t.reference||t.id,
-    type:t.transaction_type==="deposit"?"Deposit":t.transaction_type==="withdrawal"?"Withdrawal":received?"Money Received":"Transfer",
-    amount:Number(t.amount||0),partyName:received?"Demo Sender":t.transaction_type==="withdrawal"?"Suhail Wallet":"Demo Recipient",
-    partyAccount:"",createdAt:t.created_at,status:t.status||"completed",balanceAfter:null});
-}
-
-
-async function loadKYCAdminButton(){
-  const btn=$("kycAdminBtn");
-  if(!btn||!currentUser)return;
-  try{
-    const {data,error}=await supabaseClient.rpc("is_kyc_admin");
-    if(error)throw error;
-    btn.classList.toggle("hidden", data!==true);
-  }catch(e){
-    btn.classList.add("hidden");
-  }
-}
-
-async function openKYCAdmin(){
-  try{
-    const {data,error}=await supabaseClient.rpc("get_kyc_admin_queue");
-    if(error)throw error;
-    const items=Array.isArray(data)?data:[];
-    if(!items.length){
-      openModal(`<h3>🛡️ KYC Admin Review</h3><div class="empty">No KYC applications found.</div><button class="secondary" onclick="closeModal()">Close</button>`);
-      return;
-    }
-    openModal(`
-      <h3>🛡️ KYC Admin Review</h3>
-      <div class="security-note">Demo admin panel. Review only the demo KYC fields shown here. Do not request BVN, NIN, ID numbers, passwords, or identity documents.</div>
-      <div id="kycAdminList">
-        ${items.map(k=>{
-          const st=k.status||"pending";
-          const label=st==="approved"?"Approved":st==="rejected"?"Rejected":"Pending";
-          return `<div class="kyc-admin-row">
-            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
-              <b>${escapeHtml(k.full_name||"Unnamed")}</b>
-              <span class="badge ${st==='approved'?'status-approved':st==='rejected'?'status-rejected':'status-pending'}">${escapeHtml(label)}</span>
-            </div>
-            <div class="receipt-line"><b>DOB</b><span>${escapeHtml(k.date_of_birth||"—")}</span></div>
-            <div class="receipt-line"><b>Address</b><span>${escapeHtml(k.address||"—")}</span></div>
-            <div class="receipt-line"><b>Submitted</b><span>${k.created_at?escapeHtml(new Date(k.created_at).toLocaleString()):"—"}</span></div>
-            ${k.review_note?`<div class="receipt-line"><b>Review Note</b><span>${escapeHtml(k.review_note)}</span></div>`:""}
-            <label>Review note</label>
-            <textarea id="reviewNote_${escapeHtml(k.id)}" class="kyc-review-note" placeholder="Optional note"></textarea>
-            <div class="kyc-admin-actions">
-              <button onclick="reviewKYC('${escapeHtml(k.id)}','approved')">Approve</button>
-              <button class="danger" onclick="reviewKYC('${escapeHtml(k.id)}','rejected')">Reject</button>
-            </div>
-          </div>`;
-        }).join("")}
-      </div>
-      <button class="secondary" onclick="closeModal()">Close</button>
-    `);
-  }catch(e){
-    notify("Could not load KYC admin review: "+e.message,"error",5000);
-  }
-}
-
-async function reviewKYC(kycId,status){
-  const noteEl=$("reviewNote_"+kycId);
-  const review_note=(noteEl?.value||"").trim();
-  if(status==="rejected"&&!review_note){
-    notify("Please enter a short reason before rejecting.","error");return;
-  }
-  try{
-    const {data,error}=await supabaseClient.rpc("review_kyc",{
-      p_kyc_id:kycId,
-      p_status:status,
-      p_review_note:review_note||null
-    });
-    if(error)throw error;
-    notify(status==="approved"?"KYC approved successfully.":"KYC rejected successfully.","success",4000);
-    await openKYCAdmin();
-  }catch(e){
-    notify("KYC review failed: "+e.message,"error",5000);
-  }
-}
-
-async function openKYC(){
-  try{
-    const {data,error}=await supabaseClient.from("kyc_profiles")
-      .select("*").eq("user_id",currentUser.id).maybeSingle();
-    if(error)throw error;
-    const k=data||{};
-    const status=k.status||"not_submitted";
-    const statusLabel=status==="approved"?"Approved":status==="pending"?"Pending":status==="rejected"?"Rejected":"Not submitted";
-    const locked=status==="approved";
-    openModal(`
-      <h3>🪪 KYC Verification</h3>
-      <div class="kyc-status ${status==='approved'?'status-approved':status==='rejected'?'status-rejected':'status-pending'}">Status: ${escapeHtml(statusLabel)}</div>
-      ${k.review_note?`<div class="kyc-status">Review note: ${escapeHtml(k.review_note)}</div>`:""}
-      <div class="security-note">For this demo, do not enter BVN, NIN, ID numbers, or upload identity documents.</div>
-      <label>Full Name</label>
-      <input id="kycName" value="${escapeHtml(k.full_name||currentProfile?.full_name||"")}" autocomplete="name">
-      <label>Date of Birth</label>
-      <input id="kycDob" type="date" value="${escapeHtml(k.date_of_birth||k.dob||"")}">
-      <label>Address</label>
-      <input id="kycAddress" value="${escapeHtml(k.address||"")}" autocomplete="street-address">
-      ${locked?'<div class="security-note">This demo KYC is approved and cannot be edited from this screen.</div>':'<button onclick="submitKYC()">Submit KYC</button>'}
-      <button class="secondary" onclick="closeModal()">Close</button>
-    `);
-  }catch(e){
-    notify("Could not load KYC: "+e.message,"error",4500);
-  }
-}
-
-async function submitKYC(){
-  const full_name=$("kycName").value.trim();
-  const date_of_birth=$("kycDob").value;
-  const address=$("kycAddress").value.trim();
-  if(!full_name||!date_of_birth||!address){
-    notify("Please complete all KYC fields.","error"); return;
-  }
-  try{
-    const payload={
-      user_id:currentUser.id,
-      full_name,
-      date_of_birth,
-      address,
-      status:"pending"
-    };
-    const {error}=await supabaseClient.from("kyc_profiles").upsert(payload,{onConflict:"user_id"});
-    if(error)throw error;
-    closeModal();
-    notify("KYC submitted successfully. Status: Pending.","success",4500);
-    await createNotification("KYC submitted","Your KYC information was submitted and is pending review.","info");
-  }catch(e){
-    notify("KYC submission failed: "+e.message,"error",5000);
-  }
-}
-
-async function createNotification(title,message,type="info"){
-  try{
-    const {error}=await supabaseClient.from("notifications").insert({
-      user_id:currentUser.id,
-      title,
-      message,
-      type,
-      is_read:false
-    });
-    if(error)console.warn("Notification insert:",error.message);
-  }catch(e){console.warn("Notification error:",e);}
-}
-
-async function loadNotifications(){
-  try{
-    const {data,error}=await supabaseClient.from("notifications")
-      .select("*")
-      .eq("user_id",currentUser.id)
-      .order("created_at",{ascending:false})
-      .limit(50);
-    if(error)throw error;
-    const items=data||[];
-    openModal(`
-      <h3>🔔 Notifications</h3>
-      <div id="notificationsList">
-        ${items.length?items.map(n=>`
-          <div class="notification-item ${n.is_read===false?'notification-unread':''}" onclick="markNotificationRead('${escapeHtml(n.id)}')">
-            <b>${escapeHtml(n.title||"Notification")}</b>
-            <span class="badge">${escapeHtml(n.type||"info")}</span>
-            <div style="margin-top:5px;color:#555;">${escapeHtml(n.message||"")}</div>
-            <small style="color:#888;">${n.created_at?escapeHtml(new Date(n.created_at).toLocaleString()):""}</small>
-          </div>`).join(""):'<div class="empty">No notifications yet.</div>'}
-      </div>
-      <button class="secondary" onclick="closeModal()">Close</button>
-    `);
-  }catch(e){
-    notify("Could not load notifications: "+e.message,"error",4500);
-  }
-}
-
-async function markNotificationRead(id){
-  try{
-    const {error}=await supabaseClient.from("notifications")
-      .update({is_read:true})
-      .eq("id",id)
-      .eq("user_id",currentUser.id);
-    if(error)throw error;
-    await loadNotifications();
-  }catch(e){
-    notify("Could not update notification: "+e.message,"error",4500);
-  }
+ const t=(window.historyTransactions||{})[id];
+ if(!t){notify("Transaction details are not available.","error");return;}
+ showReceipt({
+   id:t.id,
+   type:t.transaction_type||"Transaction",
+   amount:Number(t.amount||0),
+   partyName:t.counterparty_name||"",
+   partyAccount:t.counterparty_account_number||"",
+   createdAt:t.created_at,
+   status:"Successful"
+ });
 }
 
 async function logout(){
