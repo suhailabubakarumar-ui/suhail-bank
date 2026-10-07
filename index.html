@@ -82,6 +82,10 @@ button.danger{background:#c62828}
 .notification-unread{background:#eef6ff;border-radius:12px;padding:12px;margin-bottom:8px}
 .badge{display:inline-block;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:700;background:#e8f2fb;color:#155b8c}
 </style>
+
+<style>
+.kyc-admin-card{border:1px solid #d9e7f3;background:#f8fbff;border-radius:16px;padding:14px;margin:10px 0}.kyc-admin-row{border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin:10px 0;background:#fff}.kyc-admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.kyc-admin-actions button{margin-top:10px}.kyc-review-note{min-height:90px;resize:vertical}.status-approved{background:#e7f7ec;color:#19713a}.status-pending{background:#fff7e6;color:#805b00}.status-rejected{background:#fde8ea;color:#a51f35}
+</style>
 </head>
 <body>
 <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
@@ -182,6 +186,8 @@ button.danger{background:#c62828}
 <button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
 <button class="service" onclick="openKYC()"><span>🪪</span><b>KYC</b></button>
 <button class="service" onclick="loadNotifications()"><span>🔔</span><b>Notifications</b></button>
+<button id="kycAdminBtn" class="service hidden" onclick="openKYCAdmin()"><span>🛡️</span><b>KYC Admin</b></button>
+
 </div>
 
 <div id="contentPanel" class="panel">
@@ -377,6 +383,7 @@ async function startApp(){
  $("accountNumber").textContent=currentAccount.account_number;
  $("balance").textContent=money(currentAccount.balance);
  await loadHistory();
+ await loadKYCAdminButton();
 }
 
 async function checkSession(){
@@ -1013,6 +1020,79 @@ function showReceiptFromHistory(id){
 }
 
 
+async function loadKYCAdminButton(){
+  const btn=$("kycAdminBtn");
+  if(!btn||!currentUser)return;
+  try{
+    const {data,error}=await supabaseClient.rpc("is_kyc_admin");
+    if(error)throw error;
+    btn.classList.toggle("hidden", data!==true);
+  }catch(e){
+    btn.classList.add("hidden");
+  }
+}
+
+async function openKYCAdmin(){
+  try{
+    const {data,error}=await supabaseClient.rpc("get_kyc_admin_queue");
+    if(error)throw error;
+    const items=Array.isArray(data)?data:[];
+    if(!items.length){
+      openModal(`<h3>🛡️ KYC Admin Review</h3><div class="empty">No KYC applications found.</div><button class="secondary" onclick="closeModal()">Close</button>`);
+      return;
+    }
+    openModal(`
+      <h3>🛡️ KYC Admin Review</h3>
+      <div class="security-note">Demo admin panel. Review only the demo KYC fields shown here. Do not request BVN, NIN, ID numbers, passwords, or identity documents.</div>
+      <div id="kycAdminList">
+        ${items.map(k=>{
+          const st=k.status||"pending";
+          const label=st==="approved"?"Approved":st==="rejected"?"Rejected":"Pending";
+          return `<div class="kyc-admin-row">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+              <b>${escapeHtml(k.full_name||"Unnamed")}</b>
+              <span class="badge ${st==='approved'?'status-approved':st==='rejected'?'status-rejected':'status-pending'}">${escapeHtml(label)}</span>
+            </div>
+            <div class="receipt-line"><b>DOB</b><span>${escapeHtml(k.date_of_birth||"—")}</span></div>
+            <div class="receipt-line"><b>Address</b><span>${escapeHtml(k.address||"—")}</span></div>
+            <div class="receipt-line"><b>Submitted</b><span>${k.created_at?escapeHtml(new Date(k.created_at).toLocaleString()):"—"}</span></div>
+            ${k.review_note?`<div class="receipt-line"><b>Review Note</b><span>${escapeHtml(k.review_note)}</span></div>`:""}
+            <label>Review note</label>
+            <textarea id="reviewNote_${escapeHtml(k.id)}" class="kyc-review-note" placeholder="Optional note"></textarea>
+            <div class="kyc-admin-actions">
+              <button onclick="reviewKYC('${escapeHtml(k.id)}','approved')">Approve</button>
+              <button class="danger" onclick="reviewKYC('${escapeHtml(k.id)}','rejected')">Reject</button>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+      <button class="secondary" onclick="closeModal()">Close</button>
+    `);
+  }catch(e){
+    notify("Could not load KYC admin review: "+e.message,"error",5000);
+  }
+}
+
+async function reviewKYC(kycId,status){
+  const noteEl=$("reviewNote_"+kycId);
+  const review_note=(noteEl?.value||"").trim();
+  if(status==="rejected"&&!review_note){
+    notify("Please enter a short reason before rejecting.","error");return;
+  }
+  try{
+    const {data,error}=await supabaseClient.rpc("review_kyc",{
+      p_kyc_id:kycId,
+      p_status:status,
+      p_review_note:review_note||null
+    });
+    if(error)throw error;
+    notify(status==="approved"?"KYC approved successfully.":"KYC rejected successfully.","success",4000);
+    await openKYCAdmin();
+  }catch(e){
+    notify("KYC review failed: "+e.message,"error",5000);
+  }
+}
+
 async function openKYC(){
   try{
     const {data,error}=await supabaseClient.from("kyc_profiles")
@@ -1021,9 +1101,11 @@ async function openKYC(){
     const k=data||{};
     const status=k.status||"not_submitted";
     const statusLabel=status==="approved"?"Approved":status==="pending"?"Pending":status==="rejected"?"Rejected":"Not submitted";
+    const locked=status==="approved";
     openModal(`
       <h3>🪪 KYC Verification</h3>
-      <div class="kyc-status">Status: ${escapeHtml(statusLabel)}</div>
+      <div class="kyc-status ${status==='approved'?'status-approved':status==='rejected'?'status-rejected':'status-pending'}">Status: ${escapeHtml(statusLabel)}</div>
+      ${k.review_note?`<div class="kyc-status">Review note: ${escapeHtml(k.review_note)}</div>`:""}
       <div class="security-note">For this demo, do not enter BVN, NIN, ID numbers, or upload identity documents.</div>
       <label>Full Name</label>
       <input id="kycName" value="${escapeHtml(k.full_name||currentProfile?.full_name||"")}" autocomplete="name">
@@ -1031,7 +1113,7 @@ async function openKYC(){
       <input id="kycDob" type="date" value="${escapeHtml(k.date_of_birth||k.dob||"")}">
       <label>Address</label>
       <input id="kycAddress" value="${escapeHtml(k.address||"")}" autocomplete="street-address">
-      <button onclick="submitKYC()">Submit KYC</button>
+      ${locked?'<div class="security-note">This demo KYC is approved and cannot be edited from this screen.</div>':'<button onclick="submitKYC()">Submit KYC</button>'}
       <button class="secondary" onclick="closeModal()">Close</button>
     `);
   }catch(e){
