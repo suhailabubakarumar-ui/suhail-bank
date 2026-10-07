@@ -81,14 +81,11 @@ button.danger{background:#c62828}
 .notification-item:last-child{border-bottom:0}
 .notification-unread{background:#eef6ff;border-radius:12px;padding:12px;margin-bottom:8px}
 .badge{display:inline-block;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:700;background:#e8f2fb;color:#155b8c}
-.notification-service{position:relative}
-.unread-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;margin-left:6px;border-radius:999px;background:#d92d20;color:#fff;font-size:12px;font-weight:800;vertical-align:middle}
-.notification-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
-.notification-toolbar button{width:auto;margin:0;padding:9px 12px;font-size:13px}
 </style>
 
 <style>
-.kyc-admin-card{border:1px solid #d9e7f3;background:#f8fbff;border-radius:16px;padding:14px;margin:10px 0}.kyc-admin-row{border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin:10px 0;background:#fff}.kyc-admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.kyc-admin-actions button{margin-top:10px}.kyc-review-note{min-height:90px;resize:vertical}.status-approved{background:#e7f7ec;color:#19713a}.status-pending{background:#fff7e6;color:#805b00}.status-rejected{background:#fde8ea;color:#a51f35}
+.kyc-admin-card{border:1px solid #d9e7f3;background:#f8fbff;border-radius:16px;padding:14px;margin:10px 0}.kyc-admin-row{border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin:10px 0;background:#fff}.kyc-admin-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.kyc-admin-actions button{margin-top:10px}.kyc-review-note{min-height:90px;resize:vertical}.status-approved{background:#e7f7ec;color:#19713a}
+.security-card{border:1px solid #d9e7f3;background:#f8fbff;border-radius:16px;padding:14px;margin:10px 0}.security-good{color:#19713a;font-weight:700}.security-warn{color:#805b00;font-weight:700}.status-pending{background:#fff7e6;color:#805b00}.status-rejected{background:#fde8ea;color:#a51f35}
 </style>
 </head>
 <body>
@@ -188,8 +185,9 @@ button.danger{background:#c62828}
 <button class="service" onclick="loadHistory()"><span>📜</span><b>History</b></button>
 <button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
 <button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
+<button class="service" onclick="openSecurity()"><span>🔐</span><b>Security</b></button>
 <button class="service" onclick="openKYC()"><span>🪪</span><b>KYC</b></button>
-<button id="notificationsBtn" class="service notification-service" onclick="loadNotifications()"><span>🔔</span><b>Notifications <span id="unreadCount" class="unread-count hidden">0</span></b></button>
+<button class="service" onclick="loadNotifications()"><span>🔔</span><b>Notifications</b></button>
 <button id="kycAdminBtn" class="service hidden" onclick="openKYCAdmin()"><span>🛡️</span><b>KYC Admin</b></button>
 
 </div>
@@ -324,7 +322,7 @@ async function loadUserData(){
 
  const {data:account,error:accountError}=await supabaseClient
    .from("accounts")
-   .select("id,user_id,account_number,balance")
+   .select("id,user_id,account_number,balance,status,currency,created_at")
    .eq("user_id",currentUser.id)
    .maybeSingle();
 
@@ -388,7 +386,6 @@ async function startApp(){
  $("balance").textContent=money(currentAccount.balance);
  await loadHistory();
  await loadKYCAdminButton();
- await updateNotificationBadge();
 }
 
 async function checkSession(){
@@ -893,13 +890,35 @@ function showTransactionDetails(id){
 }
 
 function showProfile(){
+ const created=currentAccount?.created_at?new Date(currentAccount.created_at).toLocaleString():"Not available";
  openModal(`
- <h3>Profile</h3>
- <div class="profile-row"><b>Name:</b> ${escapeHtml(currentProfile?.full_name)}</div>
- <div class="profile-row"><b>Phone:</b> ${escapeHtml(currentProfile?.phone)}</div>
- <div class="profile-row"><b>Email:</b> ${escapeHtml(currentUser?.email||"")}</div>
- <div class="profile-row"><b>Account:</b> ${escapeHtml(currentAccount?.account_number)}</div>
+ <h3>👤 Profile & Account</h3>
+ <div class="security-card">
+   <div class="profile-row"><b>Full Name:</b> ${escapeHtml(currentProfile?.full_name)}</div>
+   <div class="profile-row"><b>Phone:</b> ${escapeHtml(currentProfile?.phone)}</div>
+   <div class="profile-row"><b>Email:</b> ${escapeHtml(currentUser?.email||"")}</div>
+   <div class="profile-row"><b>Account Number:</b> ${escapeHtml(currentAccount?.account_number)}</div>
+   <div class="profile-row"><b>Account Type:</b> Demo Wallet Account</div>
+   <div class="profile-row"><b>Currency:</b> ${escapeHtml(currentAccount?.currency||"NGN")}</div>
+   <div class="profile-row"><b>Status:</b> <span class="security-good">${escapeHtml(currentAccount?.status||"active")}</span></div>
+   <div class="profile-row"><b>Created:</b> ${escapeHtml(created)}</div>
+ </div>
+ <button onclick="openSecurity()">🔐 Security Settings</button>
  <button class="secondary" onclick="closeModal()">Close</button>
+ `);
+}
+
+function openSecurity(){
+ openModal(`
+ <h3>🔐 Security</h3>
+ <div class="security-card">
+   <div class="profile-row"><b>Login:</b> <span class="security-good">Authenticated</span></div>
+   <div class="profile-row"><b>Wallet Status:</b> <span class="security-good">${escapeHtml(currentAccount?.status||"active")}</span></div>
+   <div class="profile-row"><b>Transaction PIN:</b> •••• (protected)</div>
+ </div>
+ <div class="security-note">For this demo, never share your password or transaction PIN with anyone. This project is not a real bank.</div>
+ <button onclick="openPin()">🔢 Change Transaction PIN</button>
+ <button class="secondary" onclick="showProfile()">Back to Profile</button>
  `);
 }
 
@@ -1160,44 +1179,8 @@ async function createNotification(title,message,type="info"){
       type,
       is_read:false
     });
-    if(error)throw error;
-    await updateNotificationBadge();
-  }catch(e){
-    console.warn("Notification error:",e);
-  }
-}
-
-async function updateNotificationBadge(){
-  const badge=$("unreadCount");
-  if(!badge||!currentUser)return;
-  try{
-    const {count,error}=await supabaseClient
-      .from("notifications")
-      .select("id",{count:"exact",head:true})
-      .eq("user_id",currentUser.id)
-      .eq("is_read",false);
-    if(error)throw error;
-    const n=Number(count||0);
-    badge.textContent=n>99?"99+":String(n);
-    badge.classList.toggle("hidden",n===0);
-  }catch(e){
-    badge.classList.add("hidden");
-    console.warn("Unread notification count:",e);
-  }
-}
-
-async function markAllNotificationsRead(){
-  try{
-    const {error}=await supabaseClient.from("notifications")
-      .update({is_read:true})
-      .eq("user_id",currentUser.id)
-      .eq("is_read",false);
-    if(error)throw error;
-    await updateNotificationBadge();
-    await loadNotifications();
-  }catch(e){
-    notify("Could not mark notifications as read: "+e.message,"error",4500);
-  }
+    if(error)console.warn("Notification insert:",error.message);
+  }catch(e){console.warn("Notification error:",e);}
 }
 
 async function loadNotifications(){
@@ -1209,15 +1192,8 @@ async function loadNotifications(){
       .limit(50);
     if(error)throw error;
     const items=data||[];
-    const unread=items.filter(n=>n.is_read===false).length;
-    await updateNotificationBadge();
     openModal(`
-      <h3>🔔 Notifications & Activity</h3>
-      <div class="security-note">Your latest demo account activity and system notifications appear here.</div>
-      <div class="notification-toolbar">
-        <button class="secondary" onclick="markAllNotificationsRead()" ${unread?'':'disabled'}>✓ Mark all as read</button>
-        <button class="secondary" onclick="loadNotifications()">↻ Refresh</button>
-      </div>
+      <h3>🔔 Notifications</h3>
       <div id="notificationsList">
         ${items.length?items.map(n=>`
           <div class="notification-item ${n.is_read===false?'notification-unread':''}" onclick="markNotificationRead('${escapeHtml(n.id)}')">
@@ -1241,7 +1217,6 @@ async function markNotificationRead(id){
       .eq("id",id)
       .eq("user_id",currentUser.id);
     if(error)throw error;
-    await updateNotificationBadge();
     await loadNotifications();
   }catch(e){
     notify("Could not update notification: "+e.message,"error",4500);
