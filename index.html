@@ -16,7 +16,8 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#eef4f9;color:#1
 .subtitle{text-align:center;color:#737b84;font-size:18px;margin:0 0 24px}
 label{display:block;font-weight:700;margin:15px 0 7px}
 input{width:100%;padding:15px;border:1px solid #d3dae1;border-radius:13px;font-size:16px;outline:none}
-input:focus{border-color:#0968b4}
+input:focus,textarea:focus{border-color:#0968b4}
+textarea{width:100%;min-height:130px;padding:15px;border:1px solid #d3dae1;border-radius:13px;font-size:16px;outline:none;resize:vertical}
 button{width:100%;border:0;border-radius:13px;padding:15px;margin-top:16px;background:#0968b4;color:white;font-size:17px;font-weight:700;cursor:pointer}
 button:disabled{opacity:.6}
 button.secondary{background:#e9f1f8;color:#0968b4}
@@ -170,6 +171,10 @@ button.danger{background:#c62828}
 <h3>🛡️ Account Security</h3>
 <div id="securitySummary" class="profile-row">Loading security status...</div>
 </div>
+<div class="panel" id="supportPanel">
+<h3>🎧 Help & Support</h3>
+<div id="supportSummary" class="profile-row">Need help? Open Support to send a demo support message.</div>
+</div>
 
 <div class="grid">
 <button class="service" onclick="openDeposit()"><span>💰</span><b>Deposit</b></button>
@@ -179,6 +184,7 @@ button.danger{background:#c62828}
 <button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
 <button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
 <button class="service" onclick="openSecurityCenter()"><span>🛡️</span><b>Security</b></button>
+<button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
 </div>
 
 <div id="contentPanel" class="panel">
@@ -798,6 +804,31 @@ function openSecurityCenter(){
  <button onclick="openPin()">🔢 Change Transaction PIN</button>
  <button class="secondary" onclick="closeModal()">Close</button>`;
  openModal(box.innerHTML);
+}
+
+async function openSupportCenter(){
+ openModal(`
+ <h3>🎧 Help & Support</h3>
+ <p style="color:#666;font-size:14px;line-height:1.5">Send a message about this Suhail Bank demo. Do not include passwords, PINs, BVN, NIN, card numbers or other sensitive information.</p>
+ <label>Subject</label>
+ <input id="supportSubject" maxlength="80" placeholder="e.g. Transfer issue">
+ <label>Message</label>
+ <textarea id="supportMessage" maxlength="1000" placeholder="Describe the problem..."></textarea>
+ <button onclick="submitSupportTicket()">Send Support Request</button>
+ <button class="secondary" onclick="closeModal()">Close</button>
+ `);
+}
+
+async function submitSupportTicket(){
+ const subject=($('supportSubject').value||'').trim();
+ const message=($('supportMessage').value||'').trim();
+ if(subject.length<3||message.length<5){notify('Enter a subject and a clear message.','error');return;}
+ try{
+  const {data,error}=await supabaseClient.rpc('create_support_ticket',{p_subject:subject,p_message:message});
+  if(error)throw error;
+  closeModal();
+  notify('Support request sent successfully.','success');
+ }catch(e){notify('Support request failed: '+(e.message||e),'error',4500);}
 }
 
 function showProfile(){
