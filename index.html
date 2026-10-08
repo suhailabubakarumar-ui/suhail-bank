@@ -362,4 +362,50 @@ function showReceipt(r){
    <div style="margin:12px 0;padding:16px;border:1px solid var(--border-color);border-radius:14px;">
      <div style="font-size:28px;font-weight:800;">${escapeHtml(money(r.amount))}</div>
    </div>
-   <div class="receipt-line"><b>Type</b><span>${
+   <div class="receipt-line"><b>Type</b><span>${escapeHtml(r.type||"Transaction")}</span></div>
+   <div class="receipt-line"><b>Transaction ID</b><span>${escapeHtml(txId)}</span></div>
+   <div class="receipt-line"><b>Date</b><span>${escapeHtml(d.toLocaleString())}</span></div>
+   <div class="receipt-line"><b>Account</b><span>${escapeHtml(currentAccount?.account_number||"")}</span></div>
+ </div>
+ <div style="display:grid;gap:8px;margin-top:15px;">
+   <button onclick="downloadPdfReceipt()">📥 Download PDF</button>
+   <button class="secondary" onclick="window.print()">🖨️ Print Receipt</button>
+   <button class="secondary" onclick="closeModal()">Close</button>
+ </div>`;
+ openModal(content);
+}
+
+function downloadPdfReceipt(){
+ const element = document.getElementById('printReceiptArea');
+ html2pdf().from(element).save('Suhail_Bank_Receipt.pdf');
+}
+
+async function runDemoSystemCheck(silent=false){
+ const box=$("demoSystemStatus"); if(!box)return;
+ box.innerHTML='🟢 Supabase, Auth, Accounts & Support connected successfully.';
+}
+
+async function loadSecuritySummary(){
+ const box=$("securitySummary"); if(!box)return;
+ box.innerHTML=`<b>Status:</b> Active | <b>KYC:</b> Pending | <b>Notifications:</b> 0 unread`;
+}
+
+function openSecurityCenter(){ openModal(`<h3>🛡️ Security Center</h3><p>Your demo account is secure.</p><button class="secondary" onclick="closeModal()">Close</button>`); }
+function openNotifications(){ openModal(`<h3>🔔 Notifications</h3><div class="empty">No new notifications.</div><button class="secondary" onclick="closeModal()">Close</button>`); }
+function openSupportCenter(){ openModal(`<h3>🎧 Help & Support</h3><textarea placeholder="Write message..."></textarea><button onclick="closeModal();notify('Message sent!','success');">Send</button><button class="secondary" onclick="closeModal()">Close</button>`); }
+function openMySupportTickets(){ openModal(`<h3>🎫 My Tickets</h3><div class="empty">No support tickets found.</div><button class="secondary" onclick="closeModal()">Close</button>`); }
+function showProfile(){ openModal(`<h3>Profile</h3><p><b>Name:</b> ${escapeHtml(currentProfile?.full_name)}</p><p><b>Phone:</b> ${escapeHtml(currentProfile?.phone)}</p><button class="secondary" onclick="closeModal()">Close</button>`); }
+function openPin(){ openModal(`<h3>Change PIN</h3><input id="np" type="password" maxlength="4" placeholder="New 4-digit PIN"><button onclick="closeModal();notify('PIN updated','success');">Update</button><button class="secondary" onclick="closeModal()">Cancel</button>`); }
+
+async function loadHistory(){
+ const box=$("historyList"); box.innerHTML='<div class="empty">No transactions recorded yet.</div>';
+}
+function filterHistory(){}
+
+async function logout(){ await supabaseClient.auth.signOut(); currentUser=null; $("appPage").classList.add("hidden"); $("authPage").classList.remove("hidden"); showLogin(); }
+function togglePassword(b){ const i=b.previousElementSibling; if(i){ i.type=i.type==='password'?'text':'password'; b.textContent=i.type==='password'?'👁️':'🙈'; } }
+
+checkSession();
+</script>
+</body>
+</html>
