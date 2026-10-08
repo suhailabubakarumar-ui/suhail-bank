@@ -167,11 +167,6 @@ button.danger{background:#c62828}
 <p>Your digital banking demo is ready.</p>
 </div>
 
-<div class="panel" style="border-left:5px solid #f0a000;background:#fffaf0">
-<h3>🧪 Demo Notice</h3>
-<p style="margin:0;color:#6b5200;line-height:1.5">Suhail Bank is a learning/demo project. It is not a licensed bank or real-money payment service. Do not use real financial or identity information.</p>
-</div>
-
 <div class="panel" id="securitySummaryPanel">
 <h3>🛡️ Account Security</h3>
 <div id="securitySummary" class="profile-row">Loading security status...</div>
@@ -189,12 +184,22 @@ button.danger{background:#c62828}
 <button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
 <button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
 <button class="service" onclick="openSecurityCenter()"><span>🛡️</span><b>Security</b></button>
-<button class="service" onclick="openSystemCheck()"><span>🩺</span><b>System Check</b></button>
 <button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
 <button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
 <button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
 <button class="service" onclick="openSupportReplies()"><span>💬</span><b>Support Replies</b></button>
 <button class="service" id="adminSupportBtn" style="display:none" onclick="openAdminSupportPanel()"><span>🧑‍💼</span><b>Support Admin</b></button>
+</div>
+
+<div class="panel" id="demoStatusPanel">
+<h3>✅ Demo System Status</h3>
+<div id="demoSystemStatus" class="profile-row">Ready to run system check.</div>
+<button type="button" class="secondary" onclick="runDemoSystemCheck()">🔍 Run System Check</button>
+</div>
+
+<div class="panel" style="border:1px solid #f0c36d;background:#fffaf0;">
+<h3>⚠️ Demo Notice</h3>
+<p style="margin:0;color:#6b5a32;line-height:1.5;font-size:14px;">Suhail Bank is a software demonstration only. It does not provide real-money banking, payment, or financial services.</p>
 </div>
 
 <div id="contentPanel" class="panel">
@@ -388,6 +393,7 @@ async function startApp(){
  await loadHistory();
  await loadSecuritySummary();
  await loadSupportAdminAccess();
+ await runDemoSystemCheck(true);
 }
 
 async function checkSession(){
@@ -783,6 +789,45 @@ function showTransactionDetails(id){
  openModal(`<h3>Transaction Details</h3><div class="receipt-line"><b>Direction</b><span>${escapeHtml(direction)}</span></div><div class="receipt-line"><b>Type</b><span>${escapeHtml(t.transaction_type||"Transaction")}</span></div><div class="receipt-line"><b>Amount</b><span>${money(t.amount)}</span></div>${t.counterparty_name?`<div class="receipt-line"><b>${received?"Sender":"Party"}</b><span>${escapeHtml(t.counterparty_name)}</span></div>`:""}${t.counterparty_account_number?`<div class="receipt-line"><b>${received?"Sender Account":"Account"}</b><span>${escapeHtml(t.counterparty_account_number)}</span></div>`:""}<div class="receipt-line"><b>Transaction ID</b><span style="word-break:break-all;text-align:right;max-width:60%;">${escapeHtml(t.id||"—")}</span></div><div class="receipt-line"><b>Date & Time</b><span>${new Date(t.created_at).toLocaleString()}</span></div><button onclick="showReceiptFromHistory('${escapeHtml(t.id||"")}')">Receipt / Print</button><button class="secondary" onclick="closeModal()">Close</button>`);
 }
 
+async function runDemoSystemCheck(silent=false){
+ const box=$("demoSystemStatus");
+ if(!box)return;
+ box.innerHTML='<div style="color:#555">Checking Supabase, authentication, account, history, notifications and support…</div>';
+ const results=[];
+ const check=async(label,fn)=>{
+   try{ await fn(); results.push({label,ok:true}); }
+   catch(e){ results.push({label,ok:false,error:e?.message||String(e)}); }
+ };
+
+ await check('Supabase connection',async()=>{
+   const {error}=await supabaseClient.from('accounts').select('id').eq('user_id',currentUser.id).limit(1);
+   if(error)throw error;
+ });
+ await check('Authentication',async()=>{
+   const {data,error}=await supabaseClient.auth.getSession();
+   if(error||!data.session)throw error||new Error('No active session');
+ });
+ await check('Account',async()=>{
+   if(!currentAccount?.account_number)throw new Error('Demo account not loaded');
+ });
+ await check('Transaction history',async()=>{
+   const {error}=await supabaseClient.rpc('get_my_transaction_history');
+   if(error)throw error;
+ });
+ await check('Notifications',async()=>{
+   const {error}=await supabaseClient.from('notifications').select('id').eq('user_id',currentUser.id).limit(1);
+   if(error)throw error;
+ });
+ await check('Support',async()=>{
+   const {error}=await supabaseClient.rpc('get_my_support_tickets');
+   if(error)throw error;
+ });
+
+ const okCount=results.filter(x=>x.ok).length;
+ box.innerHTML=`<div style="display:grid;gap:8px;margin-bottom:10px;">${results.map(r=>`<div><b>${r.ok?'🟢':'🔴'} ${escapeHtml(r.label)}:</b> ${r.ok?'OK':'Needs attention'+(r.error?' — '+escapeHtml(r.error):'')}</div>`).join('')}</div><div style="font-weight:700;">${okCount}/${results.length} checks passed.</div><div style="margin-top:8px;color:#666;font-size:12px;">Demo environment only — no real-money service is enabled.</div>`;
+ if(!silent)notify(okCount===results.length?'All demo system checks passed.':'Some demo checks need attention.',okCount===results.length?'success':'error',4000);
+}
+
 async function loadSecuritySummary(){
  const box=$("securitySummary");
  if(!box||!currentUser)return;
@@ -815,30 +860,6 @@ function openSecurityCenter(){
  <button onclick="openPin()">🔢 Change Transaction PIN</button>
  <button class="secondary" onclick="closeModal()">Close</button>`;
  openModal(box.innerHTML);
-}
-
-async function openSystemCheck(){
-  openModal(`<h3>🩺 System Check</h3><p style="color:#666;font-size:14px">Checking the main demo components...</p><div id="systemCheckList" class="profile-row">Running checks...</div>`);
-  const checks=[];
-  const add=(name,ok,detail)=>checks.push({name,ok,detail});
-  add("Supabase connection",!!window.supabase,"Supabase client loaded");
-  try{
-    const {data,error}=await supabaseClient.auth.getSession();
-    add("Authentication",!error && !!data?.session,"Current login session available");
-  }catch(e){ add("Authentication",false,e.message||"Session check failed"); }
-  try{
-    const {data,error}=await supabaseClient.from("accounts").select("id").eq("user_id",currentUser.id).maybeSingle();
-    add("Demo account",!error && !!data,"Account record found");
-  }catch(e){ add("Demo account",false,e.message||"Account check failed"); }
-  try{
-    const {data,error}=await supabaseClient.rpc("get_my_security_status");
-    add("Security status",!error && !!data,"Security status RPC available");
-  }catch(e){ add("Security status",false,e.message||"Security check failed"); }
-  try{
-    const {error}=await supabaseClient.from("notifications").select("id").eq("user_id",currentUser.id).limit(1);
-    add("Notifications",!error,error?error.message:"Notifications table accessible");
-  }catch(e){ add("Notifications",false,e.message||"Notification check failed"); }
-  $("systemCheckList").innerHTML=checks.map(c=>`<div class="profile-row"><b>${c.ok?"🟢":"🔴"} ${escapeHtml(c.name)}</b><br><small style="color:#666">${escapeHtml(c.detail)}</small></div>`).join("")+`<p style="font-size:12px;color:#777;margin-top:14px">Demo-only check. Passing checks do not mean regulatory approval or permission to handle real money.</p><button class="secondary" onclick="closeModal()">Close</button>`;
 }
 
 async function openNotifications(){
@@ -1148,4 +1169,3 @@ function togglePassword(button){const wrap=button.closest('.password-wrap');cons
 </script>
 </body>
 </html>
-
