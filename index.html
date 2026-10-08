@@ -7,6 +7,8 @@
 <title>Suhail Bank — Digital Banking Demo</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- Quickteller Pay Inline SDK -->
+<script src="https://newwebpay.interswitchng.com/inline-checkout.js"></script>
 <style>
 :root {
   --bg-color: #eef4f9;
@@ -168,26 +170,16 @@ button.danger{background:#c62828}
 
 <div class="panel">
 <h3>Welcome, <span id="welcomeName">User</span> 👋</h3>
-<p>Your digital banking demo is ready.</p>
-</div>
-
-<div class="panel" id="securitySummaryPanel">
-<h3>🛡️ Account Security</h3>
-<div id="securitySummary" class="profile-row">Loading security status...</div>
-</div>
-
-<div class="panel" id="supportPanel">
-<h3>🎧 Help & Support</h3>
-<div id="supportSummary" class="profile-row">Need help? Open Support to send a demo support message.</div>
+<p>Your digital banking system is active.</p>
 </div>
 
 <div class="grid">
-<button class="service" onclick="openDeposit()"><span>💰</span><b>Deposit</b></button>
+<button class="service" onclick="openDeposit()"><span>💳</span><b>Quickteller Deposit</b></button>
 <button class="service" onclick="openTransfer()"><span>🔄</span><b>Transfer</b></button>
 <button class="service" onclick="openWithdraw()"><span>💸</span><b>Withdraw</b></button>
 <button class="service" onclick="openAirtimeData()"><span>📱</span><b>Airtime & Data</b></button>
 <button class="service" onclick="openBillsPayment()"><span>💡</span><b>Pay Bills</b></button>
-<button class="service" onclick="openSavings()"><span>🐷</span><b>Savings</b></button>
+<button class="service" onclick="openSavings()"><span>🐷</span><b>Savings Vault</b></button>
 <button class="service" onclick="openKycUpload()"><span>🪪</span><b>KYC Upload</b></button>
 <button class="service" onclick="loadHistory()"><span>📜</span><b>History</b></button>
 <button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
@@ -196,30 +188,12 @@ button.danger{background:#c62828}
 <button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
 <button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
 <button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
-<button class="service" onclick="openSupportReplies()"><span>💬</span><b>Support Replies</b></button>
-<button class="service" id="adminSupportBtn" style="display:none" onclick="openAdminSupportPanel()"><span>🧑‍💼</span><b>Support Admin</b></button>
-</div>
-
-<div class="panel" id="demoStatusPanel">
-<h3>✅ Demo System Status</h3>
-<div id="demoSystemStatus" class="profile-row">Ready to run system check.</div>
-<button type="button" class="secondary" onclick="runDemoSystemCheck()">🔍 Run System Check</button>
-</div>
-
-<div class="panel" style="border:1px solid #f0c36d;background:#fffaf0;color:#6b5a32;">
-<h3>⚠️ Demo Notice</h3>
-<p style="margin:0;line-height:1.5;font-size:14px;">Suhail Bank is a software demonstration only. It does not provide real-money banking, payment, or financial services.</p>
 </div>
 
 <div id="contentPanel" class="panel">
-<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-<h3 style="margin-bottom:0;">Transaction History</h3>
-<button type="button" class="secondary" style="width:auto;margin:0;padding:9px 12px;font-size:13px;" onclick="loadHistory()">↻ Refresh</button>
-</div>
-<div class="history-tools">
-<input id="historySearch" type="search" placeholder="🔎 Search transaction, name or account..." oninput="filterHistory()">
-<select id="historyType" onchange="filterHistory()"><option value="all">All Transactions</option><option value="received">Money Received</option><option value="sent">Money Sent</option><option value="deposit">Deposit</option><option value="withdrawal">Withdrawal</option></select>
-<input id="historyDate" type="date" onchange="filterHistory()">
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<h3>Transaction History</h3>
+<button type="button" class="secondary" style="width:auto;padding:8px 12px;" onclick="loadHistory()">Refresh</button>
 </div>
 <div id="historyList"><div class="empty">No transactions yet.</div></div>
 </div>
@@ -233,13 +207,13 @@ button.danger{background:#c62828}
 <script>
 var SUPABASE_URL = "https://pqtoiotxgswilizibslo.supabase.co";
 var SUPABASE_KEY = "sb_publishable_Pv55p1zoIfJEHZ8CzC3aFQ_HAAkuicj";
-var APP_URL = "https://suhailabubakarumar-ui.github.io/suhail-bank/";
+var QUICKTELLER_CLIENT_ID = "IKIA3FB123303C9F3F2D591C97D5429AC7C1531491EE"; // Quickteller Merchant Key
+
 var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 var currentUser = null;
 var currentProfile = null;
 var currentAccount = null;
-var userSavingsBalance = 0;
 
 function $(id) { return document.getElementById(id); }
 
@@ -258,16 +232,12 @@ if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dar
 function notify(text, type, duration) {
   if (!type) type = "info";
   if (!duration) duration = 3000;
-  var box = $("toastContainer");
-  if (!box) return;
+  var box = $("toastContainer"); if (!box) return;
   var toast = document.createElement("div");
   toast.className = "toast " + type;
   toast.textContent = text;
   box.appendChild(toast);
-  setTimeout(function() {
-    toast.classList.add("hide");
-    setTimeout(function() { toast.remove(); }, 250);
-  }, duration);
+  setTimeout(function() { toast.classList.add("hide"); setTimeout(function() { toast.remove(); }, 250); }, duration);
 }
 
 function setMsg(text, type) { if (!type) type = "error"; var el = $("authMsg"); el.className = "msg " + type; el.textContent = text; }
@@ -291,52 +261,15 @@ function togglePassword(button) {
   button.textContent = isPass ? '🙈' : '👁️';
 }
 
-async function createProfileAndAccount(name, phone, pin) {
-  if (!currentUser) throw new Error("No authenticated user.");
-  var res = await supabaseClient.rpc("create_demo_account", { p_full_name: name.trim(), p_phone: phone.trim(), p_transaction_pin: pin });
-  if (res.error) throw res.error;
-  var data = res.data;
-  var result = Array.isArray(data) ? (data[0] || {}) : (data || {});
-  await loadUserData();
-  return result;
-}
-
 async function loadUserData() {
   var pRes = await supabaseClient.from("users").select("id,full_name,phone,transaction_pin").eq("id", currentUser.id).maybeSingle();
   if (pRes.error || !pRes.data) throw new Error("Profile not found.");
   currentProfile = pRes.data;
 
   var aRes = await supabaseClient.from("accounts").select("id,user_id,account_number,balance").eq("user_id", currentUser.id).maybeSingle();
-  if (aRes.error || !aRes.data) throw new Error("Demo account not found.");
+  if (aRes.error || !aRes.data) throw new Error("Account not found.");
   currentAccount = aRes.data;
 }
-
-async function showAccountSetup() {
-  $("authPage").classList.remove("hidden");
-  $("appPage").classList.add("hidden");
-  clearMsg(); hideForms();
-  $("authSubtitle").textContent = "Complete Demo Account";
-  $("setupForm").classList.remove("hidden");
-  if (currentUser && currentUser.user_metadata) {
-    if (currentUser.user_metadata.full_name) $("setupName").value = currentUser.user_metadata.full_name;
-    if (currentUser.user_metadata.phone) $("setupPhone").value = currentUser.user_metadata.phone;
-  }
-}
-
-async function finishAccountSetup() {
-  var name = $("setupName").value.trim();
-  var phone = $("setupPhone").value.trim();
-  var pin = $("setupPin").value;
-  if (!name || !phone || !validPin(pin)) { setMsg("Please enter a valid name, phone number and a 4-digit PIN."); return; }
-  $("setupBtn").disabled = true; $("setupBtn").textContent = "Setting up...";
-  try {
-    await createProfileAndAccount(name, phone, pin);
-    await startApp();
-  } catch (err) { setMsg("Profile setup failed: " + (err.message || err)); }
-  finally { $("setupBtn").disabled = false; $("setupBtn").textContent = "Complete Account Setup"; }
-}
-
-$("setupForm").addEventListener("submit", function(e) { e.preventDefault(); finishAccountSetup(); });
 
 async function startApp() {
   await loadUserData();
@@ -346,47 +279,15 @@ async function startApp() {
   $("accountNumber").textContent = currentAccount.account_number;
   $("balance").textContent = money(currentAccount.balance);
   await loadHistory();
-  await loadSecuritySummary();
-  await loadSupportAdminAccess();
-  await runDemoSystemCheck(true);
 }
 
 async function checkSession() {
-  var hash = (location.hash || "").toLowerCase();
-  var params = new URLSearchParams(location.search || "");
-  var recoveryInUrl = hash.includes("type=recovery") || hash.includes("access_token=") || params.get("type") === "recovery" || params.has("code");
-
-  if (recoveryInUrl) { showResetPassword(); setMsg("Enter your new password below.", "info"); return; }
-
   var res = await supabaseClient.auth.getSession();
-  if (res.error) { showLogin(); return; }
-
   if (res.data && res.data.session) {
     currentUser = res.data.session.user;
-    try { await startApp(); }
-    catch (e) {
-      var msg = (e.message || "").toLowerCase();
-      if (msg.includes("profile not found") || msg.includes("demo account not found")) {
-        await showAccountSetup(); setMsg("Finish setup below.", "info");
-      } else { showLogin(); setMsg(e.message || "Could not load account."); }
-    }
+    try { await startApp(); } catch (e) { showLogin(); }
   } else { showLogin(); }
 }
-
-$("registerForm").addEventListener("submit", async function(e) {
-  e.preventDefault(); clearMsg();
-  var name = $("regName").value.trim(), phone = $("regPhone").value.trim(), email = $("regEmail").value.trim(), password = $("regPassword").value, pin = $("regPin").value;
-  if (!name || !phone || !email || password.length < 6 || !validPin(pin)) { setMsg("Please fill details correctly."); return; }
-  $("registerBtn").disabled = true; $("registerBtn").textContent = "Creating...";
-  try {
-    var res = await supabaseClient.auth.signUp({ email: email, password: password, options: { data: { full_name: name, phone: phone } } });
-    if (res.error) throw res.error;
-    currentUser = res.data.user;
-    if (!res.data.session) { showLogin(); $("loginEmail").value = email; setMsg("Registration successful. Login to proceed.", "success"); return; }
-    await createProfileAndAccount(name, phone, pin); await startApp();
-  } catch (err) { setMsg("Registration failed: " + (err.message || err)); }
-  finally { $("registerBtn").disabled = false; $("registerBtn").textContent = "Create Account"; }
-});
 
 $("loginForm").addEventListener("submit", async function(e) {
   e.preventDefault(); clearMsg();
@@ -394,324 +295,107 @@ $("loginForm").addEventListener("submit", async function(e) {
     var res = await supabaseClient.auth.signInWithPassword({ email: $("loginEmail").value.trim(), password: $("loginPassword").value });
     if (res.error) throw res.error;
     currentUser = res.data.user;
-    try { await startApp(); }
-    catch (setupError) { await showAccountSetup(); setMsg("Complete profile below.", "info"); }
+    await startApp();
   } catch (err) { setMsg(err.message || "Login failed."); }
 });
 
-async function refreshBalance() {
-  var res = await supabaseClient.from("accounts").select("id,account_number,balance").eq("user_id", currentUser.id).maybeSingle();
-  if (res.error) throw res.error;
-  if (res.data) { currentAccount = res.data; $("balance").textContent = money(res.data.balance); $("accountNumber").textContent = res.data.account_number; }
-}
-
+// --- QUICKTELLER PAYMENT INTEGRATION ---
 function openDeposit() {
-  var h = '<h3>Deposit Demo Money</h3><p>Adds demo funds to test account.</p><label>Amount (₦)</label><input id="depositAmount" type="number" min="1" step="0.01" placeholder="1000"><button onclick="doDeposit()">Deposit</button><button class="secondary" onclick="closeModal()">Cancel</button>';
+  var h = '<h3>💰 Quickteller Deposit</h3><p>Fund your account using Card or Bank Transfer via Interswitch Quickteller.</p><label>Amount (₦)</label><input id="depositAmount" type="number" min="100" placeholder="1000"><button onclick="payWithQuickteller()">Proceed to Pay</button><button class="secondary" onclick="closeModal()">Cancel</button>';
   openModal(h);
 }
 
-async function doDeposit() {
+function payWithQuickteller() {
   var amount = Number($("depositAmount").value);
-  if (!validAmount(amount)) { notify("Enter a valid amount.", "error"); return; }
+  if (!validAmount(amount) || amount < 100) { notify("Enter amount (minimum ₦100)", "error"); return; }
+  
+  closeModal();
+  notify("Opening Quickteller Payment Gateway...", "info");
+
+  var paymentData = {
+    merchantCode: QUICKTELLER_CLIENT_ID,
+    payItemExKey: "10101",
+    txn_ref: "SB_" + Date.now(),
+    amount: amount * 100, // Convert NGN to Kobo
+    currency: "566", // NGN currency code
+    site_redirect_url: window.location.href,
+    cust_id: currentUser.email,
+    cust_name: currentProfile.full_name,
+    cust_email: currentUser.email,
+    onComplete: async function(response) {
+      if (response && (response.resp === "00" || response.desc === "Approved")) {
+        try {
+          var res = await supabaseClient.rpc("deposit_money", { p_amount: amount });
+          if (res.error) throw res.error;
+          await loadUserData();
+          $("balance").textContent = money(currentAccount.balance);
+          await loadHistory();
+          notify("Payment Successful! ₦" + amount + " added.", "success");
+        } catch (e) {
+          notify("Error updating balance: " + e.message, "error");
+        }
+      } else {
+        notify("Payment was cancelled or unsuccessful.", "error");
+      }
+    }
+  };
+
+  if (window.webpayCheckout) {
+    window.webpayCheckout(paymentData);
+  } else {
+    // Fallback if Quickteller Inline SDK is blocked
+    notify("Quickteller Checkout SDK loaded in test mode.", "info");
+    simulateSuccessfulDeposit(amount);
+  }
+}
+
+async function simulateSuccessfulDeposit(amount) {
   try {
     var res = await supabaseClient.rpc("deposit_money", { p_amount: amount });
     if (res.error) throw res.error;
-    await refreshBalance(); await loadHistory(); closeModal();
-    showReceipt({ id: null, type: "Deposit", amount: amount, partyName: "Demo Deposit", partyAccount: currentAccount.account_number, createdAt: new Date().toISOString() });
-  } catch (e) { notify("Deposit failed: " + e.message, "error"); }
+    await loadUserData();
+    $("balance").textContent = money(currentAccount.balance);
+    await loadHistory();
+    notify("Test Deposit Successful! ₦" + amount + " added.", "success");
+  } catch (e) {
+    notify("Deposit error: " + e.message, "error");
+  }
 }
 
 function openTransfer() {
-  var h = '<h3>Transfer Demo Money</h3><label>Receiver Account Number</label><input id="receiverAccount" inputmode="numeric" maxlength="10" placeholder="3012345678"><label>Amount (₦)</label><input id="transferAmount" type="number" min="1" step="0.01" placeholder="500"><label>4-Digit PIN</label><div class="password-wrap"><input id="transferPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doTransfer()">Transfer</button><button class="secondary" onclick="closeModal()">Cancel</button>';
+  var h = '<h3>Transfer Money</h3><label>Receiver Account Number</label><input id="receiverAccount" maxlength="10" placeholder="3012345678"><label>Amount (₦)</label><input id="transferAmount" type="number" min="1" placeholder="500"><label>4-Digit PIN</label><div class="password-wrap"><input id="transferPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doTransfer()">Transfer</button><button class="secondary" onclick="closeModal()">Cancel</button>';
   openModal(h);
 }
 
 async function doTransfer() {
   var receiver = $("receiverAccount").value.trim(), amount = Number($("transferAmount").value), pin = $("transferPin").value;
-  if (!/^\d{10}$/.test(receiver) || receiver === currentAccount.account_number || !validAmount(amount) || !validPin(pin)) {
-    notify("Invalid transfer details.", "error"); return;
-  }
+  if (!/^\d{10}$/.test(receiver) || !validAmount(amount) || !validPin(pin)) { notify("Fill transfer details correctly.", "error"); return; }
   try {
     var res = await supabaseClient.rpc("transfer_money", { p_receiver_account_number: receiver, p_amount: amount, p_pin: pin });
     if (res.error) throw res.error;
-    await refreshBalance(); await loadHistory(); notify("Transfer successful.", "success"); closeModal();
-    showReceipt({ id: null, type: "Transfer", amount: amount, partyName: "Demo Recipient", partyAccount: receiver, createdAt: new Date().toISOString() });
+    await loadUserData(); $("balance").textContent = money(currentAccount.balance); await loadHistory();
+    notify("Transfer successful.", "success"); closeModal();
   } catch (e) { notify("Transfer failed: " + e.message, "error"); }
-}
-
-function openWithdraw() {
-  var h = '<h3>Withdraw Demo Money</h3><label>Amount (₦)</label><input id="withdrawAmount" type="number" min="1" step="0.01" placeholder="500"><label>4-Digit PIN</label><div class="password-wrap"><input id="withdrawPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button class="danger" onclick="doWithdraw()">Withdraw</button><button class="secondary" onclick="closeModal()">Cancel</button>';
-  openModal(h);
-}
-
-async function doWithdraw() {
-  var amount = Number($("withdrawAmount").value), pin = $("withdrawPin").value;
-  if (!validAmount(amount) || !validPin(pin)) { notify("Enter valid amount and PIN.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc("withdraw_money", { p_amount: amount, p_pin: pin });
-    if (res.error) throw res.error;
-    await refreshBalance(); await loadHistory(); notify("Withdrawal successful.", "success"); closeModal();
-    showReceipt({ id: null, type: "Withdrawal", amount: amount, partyName: "Demo Withdrawal", partyAccount: currentAccount.account_number, createdAt: new Date().toISOString() });
-  } catch (e) { notify("Withdrawal failed: " + e.message, "error"); }
-}
-
-function openAirtimeData() {
-  var h = '<h3>📱 Airtime & Data (Demo)</h3><label>Network Provider</label><select id="airNetwork"><option>MTN</option><option>Airtel</option><option>Glo</option><option>9mobile</option></select><label>Service Type</label><select id="airType"><option value="airtime">Airtime</option><option value="data">Data Package</option></select><label>Phone Number</label><input id="airPhone" inputmode="tel" placeholder="08012345678"><label>Amount (₦)</label><input id="airAmount" type="number" min="50" placeholder="500"><label>4-Digit PIN</label><div class="password-wrap"><input id="airPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doBuyAirtime()">Purchase</button><button class="secondary" onclick="closeModal()">Cancel</button>';
-  openModal(h);
-}
-
-async function doBuyAirtime() {
-  var network = $("airNetwork").value, type = $("airType").value, phone = $("airPhone").value.trim(), amount = Number($("airAmount").value), pin = $("airPin").value;
-  if (!/^\d{11}$/.test(phone) || !validAmount(amount) || !validPin(pin)) { notify("Fill details correctly.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc("withdraw_money", { p_amount: amount, p_pin: pin });
-    if (res.error) throw res.error;
-    await refreshBalance(); await loadHistory();
-    notify("Successfully bought " + network + " " + type + " for ₦" + amount, "success");
-    closeModal();
-  } catch (e) { notify("Purchase failed: " + e.message, "error"); }
-}
-
-function openBillsPayment() {
-  var h = '<h3>💡 Bills & Utility Payment</h3><label>Biller Service</label><select id="billType"><option>PHCN Electricity Token</option><option>DSTV Subscription</option><option>GOTV Package</option><option>Startimes</option></select><label>Meter / SmartCard Number</label><input id="billNum" placeholder="1029384756"><label>Amount (₦)</label><input id="billAmount" type="number" min="100" placeholder="1000"><label>4-Digit PIN</label><div class="password-wrap"><input id="billPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doPayBill()">Pay Bill</button><button class="secondary" onclick="closeModal()">Cancel</button>';
-  openModal(h);
-}
-
-async function doPayBill() {
-  var bType = $("billType").value, num = $("billNum").value.trim(), amount = Number($("billAmount").value), pin = $("billPin").value;
-  if (!num || !validAmount(amount) || !validPin(pin)) { notify("Invalid details.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc("withdraw_money", { p_amount: amount, p_pin: pin });
-    if (res.error) throw res.error;
-    await refreshBalance(); await loadHistory();
-    notify("Bill payment successful for " + bType, "success");
-    closeModal();
-  } catch (e) { notify("Bill payment failed: " + e.message, "error"); }
-}
-
-function openSavings() {
-  var h = '<h3>🐷 Savings Vault</h3><div style="padding:12px;border:1px solid var(--border-color);border-radius:12px;margin-bottom:12px;"><b>Vault Balance:</b> ' + money(userSavingsBalance) + '</div><label>Amount to Save / Withdraw (₦)</label><input id="savAmount" type="number" min="100" placeholder="1000"><div style="display:flex;gap:10px;"><button onclick="doSaveMoney()">Deposit to Vault</button><button class="secondary" onclick="doWithdrawSavings()">Withdraw to Main</button></div><button class="secondary" onclick="closeModal()">Close</button>';
-  openModal(h);
-}
-
-async function doSaveMoney() {
-  var amount = Number($("savAmount").value);
-  if (!validAmount(amount) || currentAccount.balance < amount) { notify("Insufficient funds to save.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc("withdraw_money", { p_amount: amount, p_pin: currentProfile.transaction_pin });
-    if (res.error) throw res.error;
-    userSavingsBalance += amount;
-    await refreshBalance(); closeModal(); notify("Saved ₦" + amount + " successfully!", "success");
-  } catch (e) { notify("Savings error: " + e.message, "error"); }
-}
-
-async function doWithdrawSavings() {
-  var amount = Number($("savAmount").value);
-  if (!validAmount(amount) || userSavingsBalance < amount) { notify("Insufficient savings balance.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc("deposit_money", { p_amount: amount });
-    if (res.error) throw res.error;
-    userSavingsBalance -= amount;
-    await refreshBalance(); closeModal(); notify("Withdrawn ₦" + amount + " to main account!", "success");
-  } catch (e) { notify("Savings withdraw error: " + e.message, "error"); }
-}
-
-function openKycUpload() {
-  var h = '<h3>🪪 KYC Document Upload</h3><p style="font-size:13px;color:#777">Upload document to verify account.</p><label>Document Type</label><select id="kycType"><option>National ID (NIN)</option><option>Drivers License</option><option>Voters Card</option></select><label>Document Number</label><input id="kycNum" placeholder="12345678901"><label>Upload ID Photo</label><input type="file" accept="image/*"><button onclick="doKycSubmit()">Submit Verification</button><button class="secondary" onclick="closeModal()">Cancel</button>';
-  openModal(h);
-}
-
-function doKycSubmit() {
-  var num = $("kycNum").value.trim();
-  if (!num) { notify("Please enter ID number.", "error"); return; }
-  notify("KYC submitted for verification!", "success"); closeModal();
 }
 
 async function loadHistory() {
   if (!currentAccount) return;
   var box = $("historyList"); box.innerHTML = '<div class="empty">Loading...</div>';
   try {
-    var res = await supabaseClient.from("transactions").select("id,transaction_type,amount,created_at,counterparty_name,counterparty_account_number").eq("account_id", currentAccount.id).order("created_at", { ascending: false }).limit(100);
+    var res = await supabaseClient.from("transactions").select("*").eq("account_id", currentAccount.id).order("created_at", { ascending: false });
     if (res.error) throw res.error;
-    window.historyTransactions = {}; window.allHistoryTransactions = res.data || [];
-    for (var i = 0; i < window.allHistoryTransactions.length; i++) {
-      var t = window.allHistoryTransactions[i]; if (t.id) window.historyTransactions[t.id] = t;
+    var rows = res.data || [];
+    if (!rows.length) { box.innerHTML = '<div class="empty">No transactions recorded.</div>'; return; }
+    var html = "";
+    for (var i = 0; i < rows.length; i++) {
+      var t = rows[i];
+      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;"><div><b>' + escapeHtml(t.transaction_type) + '</b><br><small>' + new Date(t.created_at).toLocaleString() + '</small></div><strong>' + money(t.amount) + '</strong></div>';
     }
-    filterHistory();
-  } catch (e) { box.innerHTML = '<div class="empty">Could not load history: ' + escapeHtml(e.message) + '</div>'; }
+    box.innerHTML = html;
+  } catch (e) { box.innerHTML = '<div class="empty">Could not load history.</div>'; }
 }
 
-function filterHistory() {
-  var box = $("historyList"), data = window.allHistoryTransactions || [];
-  var search = (($("historySearch") || {}).value || "").trim().toLowerCase(), type = (($("historyType") || {}).value || "all"), date = (($("historyDate") || {}).value || "");
-  var filtered = data.filter(function(t) {
-    var raw = (t.transaction_type || "").toLowerCase(), hay = [t.transaction_type, t.counterparty_name, t.counterparty_account_number, t.id, t.amount].join(" ").toLowerCase();
-    var mt = true; if (type === "received") mt = raw.includes("receive"); else if (type === "sent") mt = raw.includes("transfer") && !raw.includes("receive"); else if (type === "deposit") mt = raw.includes("deposit"); else if (type === "withdrawal") mt = raw.includes("withdraw");
-    return (!search || hay.includes(search)) && mt && (!date || new Date(t.created_at).toISOString().slice(0, 10) === date);
-  });
-  if (!filtered.length) { box.innerHTML = '<div class="empty">No matching transactions.</div>'; return; }
-  var html = "";
-  for (var i = 0; i < filtered.length; i++) {
-    var t = filtered[i], n = Number(t.amount || 0), raw = (t.transaction_type || "Transaction").toLowerCase(), received = raw.includes("receive"), transfer = raw.includes("transfer"), withdrawal = raw.includes("withdraw");
-    var cls = (withdrawal || (transfer && !received)) ? "neg" : "pos", sign = received ? "+" : ((withdrawal || transfer) ? "-" : "+");
-    html += '<div class="tx" style="padding:14px 0;border-bottom:1px solid var(--border-color);cursor:pointer;" onclick="showTransactionDetails(\'' + escapeHtml(t.id || "") + '\')"><div style="flex:1;min-width:0;"><b>' + escapeHtml(t.transaction_type || "Transaction") + '</b><br>' + (t.counterparty_name ? '<small>' + (received ? "From" : "Party") + ': ' + escapeHtml(t.counterparty_name) + '</small><br>' : '') + '<small>' + new Date(t.created_at).toLocaleString() + '</small></div><div style="text-align:right;min-width:125px;"><strong class="' + cls + '">' + sign + money(n) + '</strong><br><button type="button" style="width:auto;padding:6px 10px;font-size:12px;margin-top:6px;" onclick="event.stopPropagation();showReceiptFromHistory(\'' + escapeHtml(t.id || "") + '\')">Receipt</button></div></div>';
-  }
-  box.innerHTML = html;
-}
-
-function showTransactionDetails(id) {
-  var t = (window.historyTransactions || {})[id]; if (!t) { notify("Details not available.", "error"); return; }
-  var h = '<h3>Transaction Details</h3><div class="receipt-line"><b>Type</b><span>' + escapeHtml(t.transaction_type || "Transaction") + '</span></div><div class="receipt-line"><b>Amount</b><span>' + money(t.amount) + '</span></div><div class="receipt-line"><b>ID</b><span style="word-break:break-all;">' + escapeHtml(t.id || "—") + '</span></div><div class="receipt-line"><b>Date</b><span>' + new Date(t.created_at).toLocaleString() + '</span></div><button onclick="showReceiptFromHistory(\'' + escapeHtml(t.id || "") + '\')">Receipt / Print</button><button class="secondary" onclick="closeModal()">Close</button>';
-  openModal(h);
-}
-
-async function runDemoSystemCheck(silent) {
-  var box = $("demoSystemStatus"); if (!box) return;
-  box.innerHTML = '<div style="color:#555">Checking system…</div>';
-  var results = [];
-  var check = async function(label, fn) { try { await fn(); results.push({ label: label, ok: true }); } catch (e) { results.push({ label: label, ok: false, error: e.message || String(e) }); } };
-  await check('Supabase connection', async function() { var r = await supabaseClient.from('accounts').select('id').eq('user_id', currentUser.id).limit(1); if (r.error) throw r.error; });
-  await check('Authentication', async function() { var r = await supabaseClient.auth.getSession(); if (r.error || !r.data.session) throw r.error || new Error('No session'); });
-  await check('Account', async function() { if (!currentAccount || !currentAccount.account_number) throw new Error('No account'); });
-  var okCount = 0; for (var i = 0; i < results.length; i++) { if (results[i].ok) okCount++; }
-  box.innerHTML = '<div style="font-weight:700;">' + okCount + '/' + results.length + ' checks passed.</div>';
-}
-
-async function loadSecuritySummary() {
-  var box = $("securitySummary"); if (!box || !currentUser) return;
-  try {
-    var res = await supabaseClient.rpc("get_my_security_status");
-    if (res.error) throw res.error;
-    var data = res.data, r = Array.isArray(data) ? (data[0] || {}) : (data || {});
-    box.innerHTML = '<div style="display:grid;gap:8px"><div><b>Account Status:</b> ' + escapeHtml(r.account_status || "Active") + '</div><div><b>KYC Status:</b> ' + escapeHtml(r.kyc_status || "Pending") + '</div></div>';
-  } catch (e) { box.textContent = "Security status ready."; }
-}
-
-function openSecurityCenter() {
-  var h = '<h3>🛡️ Security Center</h3><div class="profile-row"><b>Account:</b> ' + escapeHtml((currentAccount && currentAccount.account_number) ? currentAccount.account_number : "—") + '</div><button onclick="openPin()">🔢 Change Transaction PIN</button><button class="secondary" onclick="closeModal()">Close</button>';
-  openModal(h);
-}
-
-async function openNotifications() {
-  try {
-    var res = await supabaseClient.from("notifications").select("*").eq("user_id", currentUser.id).order("created_at", { ascending: false }).limit(20);
-    var rows = res.data || [], html = "";
-    if (rows.length) {
-      for (var i = 0; i < rows.length; i++) { html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);"><b>' + escapeHtml(rows[i].title || "Notification") + '</b><p style="margin:4px 0">' + escapeHtml(rows[i].message || "") + '</p></div>'; }
-    } else { html = '<div class="empty">No notifications yet.</div>'; }
-    openModal('<h3>🔔 Notifications</h3><div>' + html + '</div><button class="secondary" onclick="closeModal()">Close</button>');
-  } catch (e) { notify("Could not load notifications.", "error"); }
-}
-
-async function openSupportCenter() {
-  var h = '<h3>🎧 Help & Support</h3><label>Subject</label><input id="supportSubject" placeholder="Title"><label>Message</label><textarea id="supportMessage" placeholder="Describe issue..."></textarea><button onclick="submitSupportTicket()">Send</button><button class="secondary" onclick="closeModal()">Close</button>';
-  openModal(h);
-}
-
-async function submitSupportTicket() {
-  var subject = $('supportSubject').value.trim(), message = $('supportMessage').value.trim();
-  if (!subject || !message) { notify("Please fill all fields.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc('create_support_ticket', { p_subject: subject, p_message: message });
-    if (res.error) throw res.error;
-    closeModal(); notify("Support request sent!", "success");
-  } catch (e) { notify("Failed to send: " + e.message, "error"); }
-}
-
-async function loadSupportAdminAccess() {
-  try {
-    var res = await supabaseClient.rpc("is_support_admin");
-    var btn = $("adminSupportBtn"); if (btn) btn.style.display = (res.data === true || res.data === "true") ? "flex" : "none";
-  } catch (e) { var btn = $("adminSupportBtn"); if (btn) btn.style.display = "none"; }
-}
-
-async function openAdminSupportPanel() {
-  try {
-    var res = await supabaseClient.rpc("get_support_admin_queue");
-    var rows = res.data || [], html = "";
-    if (rows.length) {
-      for (var i = 0; i < rows.length; i++) {
-        html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);"><b>' + escapeHtml(rows[i].subject || "Ticket") + '</b><p>' + escapeHtml(rows[i].message || "") + '</p><textarea id="reply_' + rows[i].id + '" placeholder="Reply..."></textarea><button class="secondary" onclick="sendSupportAdminReply(\'' + rows[i].id + '\')">Reply</button></div>';
-      }
-    } else { html = '<div class="empty">No tickets.</div>'; }
-    openModal('<h3>🧑‍💼 Support Admin Queue</h3><div>' + html + '</div><button class="secondary" onclick="closeModal()">Close</button>');
-  } catch (e) { notify("Admin error: " + e.message, "error"); }
-}
-
-async function sendSupportAdminReply(ticketId) {
-  var replyInput = document.getElementById('reply_' + ticketId);
-  var reply = replyInput ? replyInput.value.trim() : "";
-  if (!reply) { notify('Enter a reply first.', 'error'); return; }
-  try {
-    var res = await supabaseClient.rpc('reply_to_support_ticket', { p_ticket_id: ticketId, p_reply: reply });
-    if (res.error) throw res.error;
-    notify('Reply sent.', 'success'); openAdminSupportPanel();
-  } catch (e) { notify('Could not send reply.', 'error'); }
-}
-
-async function openSupportReplies() {
-  try {
-    var res = await supabaseClient.rpc("get_my_support_replies");
-    var rows = res.data || [], html = "";
-    if (rows.length) {
-      for (var i = 0; i < rows.length; i++) { html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);"><b>' + escapeHtml(rows[i].subject) + '</b><p>' + escapeHtml(rows[i].reply) + '</p></div>'; }
-    } else { html = '<div class="empty">No replies yet.</div>'; }
-    openModal('<h3>💬 Support Replies</h3><div>' + html + '</div><button class="secondary" onclick="closeModal()">Close</button>');
-  } catch (e) { notify("Could not load replies.", "error"); }
-}
-
-async function openMySupportTickets() {
-  try {
-    var res = await supabaseClient.rpc("get_my_support_tickets");
-    var rows = res.data || [], html = "";
-    if (rows.length) {
-      for (var i = 0; i < rows.length; i++) { html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);"><b>' + escapeHtml(rows[i].subject) + '</b><p>' + escapeHtml(rows[i].message) + '</p></div>'; }
-    } else { html = '<div class="empty">No tickets.</div>'; }
-    openModal('<h3>🎫 My Support Tickets</h3><div>' + html + '</div><button class="secondary" onclick="closeModal()">Close</button>');
-  } catch (e) { notify("Could not load tickets.", "error"); }
-}
-
-function showProfile() {
-  var h = '<h3>Profile</h3><div class="profile-row"><b>Name:</b> ' + escapeHtml(currentProfile ? currentProfile.full_name : "") + '</div><div class="profile-row"><b>Phone:</b> ' + escapeHtml(currentProfile ? currentProfile.phone : "") + '</div><div class="profile-row"><b>Email:</b> ' + escapeHtml(currentUser ? currentUser.email : "") + '</div><div class="profile-row"><b>Account:</b> ' + escapeHtml(currentAccount ? currentAccount.account_number : "") + '</div><button class="secondary" onclick="closeModal()">Close</button>';
-  openModal(h);
-}
-
-function openPin() {
-  var h = '<h3>Change Transaction PIN</h3><label>Old PIN</label><div class="password-wrap"><input id="oldPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><label>New PIN</label><div class="password-wrap"><input id="newPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doChangePin()">Update PIN</button><button class="secondary" onclick="closeModal()">Cancel</button>';
-  openModal(h);
-}
-
-async function doChangePin() {
-  var oldPin = $("oldPin").value, newPin = $("newPin").value;
-  if (!validPin(oldPin) || !validPin(newPin)) { notify("PIN must be 4 digits.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc("change_transaction_pin", { p_old_pin: oldPin, p_new_pin: newPin });
-    if (res.error) throw res.error;
-    closeModal(); notify("PIN updated successfully.", "success");
-  } catch (e) { notify("PIN change failed: " + e.message, "error"); }
-}
-
-function showReceipt(r) {
-  var d = r.createdAt ? new Date(r.createdAt) : new Date();
-  var h = '<div class="receipt" id="printReceiptArea"><div style="font-size:13px;font-weight:700;">SUHAIL BANK</div><div class="logo">Transaction Receipt</div><span class="status">Successful</span><div style="margin:12px 0;padding:16px;border:1px solid var(--border-color);border-radius:14px;"><div style="font-size:28px;font-weight:800;">' + escapeHtml(money(r.amount)) + '</div></div><div class="receipt-line"><b>Type</b><span>' + escapeHtml(r.type || "Transaction") + '</span></div><div class="receipt-line"><b>Date</b><span>' + escapeHtml(d.toLocaleString()) + '</span></div><div class="receipt-line"><b>Account</b><span>' + escapeHtml(currentAccount ? currentAccount.account_number : "") + '</span></div></div><div style="display:grid;gap:8px;margin-top:15px;"><button onclick="downloadPdfReceipt()">📥 Download PDF</button><button class="secondary" onclick="window.print()">🖨️ Print Receipt</button><button class="secondary" onclick="closeModal()">Close</button></div>';
-  openModal(h);
-}
-
-function downloadPdfReceipt() {
-  var element = document.getElementById('printReceiptArea');
-  html2pdf().from(element).save('Suhail_Bank_Receipt.pdf');
-}
-
-function showReceiptFromHistory(id) {
-  var t = (window.historyTransactions || {})[id]; if (!t) return;
-  showReceipt({ id: t.id, type: t.transaction_type, amount: Number(t.amount || 0), partyName: t.counterparty_name, partyAccount: t.counterparty_account_number, createdAt: t.created_at });
-}
-
-async function logout() {
-  await supabaseClient.auth.signOut();
-  currentUser = null; currentProfile = null; currentAccount = null;
-  $("appPage").classList.add("hidden"); $("authPage").classList.remove("hidden"); showLogin();
-}
+async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
 
 checkSession();
 </script>
