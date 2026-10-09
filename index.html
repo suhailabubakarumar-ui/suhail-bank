@@ -5,9 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0b67b2">
 <title>Suhail Bank — Digital Banking Demo</title>
+
+<!-- Application Logo & PWA Manifest -->
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2830/2830284.png">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2830/2830284.png">
+
+<script>
+const manifestObj = {
+  "name": "Suhail Bank",
+  "short_name": "Suhail Bank",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#eef4f9",
+  "theme_color": "#0b67b2",
+  "description": "Suhail Bank Digital Banking Mobile App",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+};
+const stringManifest = JSON.stringify(manifestObj);
+const blob = new Blob([stringManifest], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = manifestURL;
+document.head.appendChild(link);
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<!-- Quickteller Pay Inline SDK -->
 <script src="https://newwebpay.interswitchng.com/inline-checkout.js"></script>
 <style>
 :root {
@@ -30,7 +67,8 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg-color);
 .hidden{display:none!important}
 .page{min-height:100vh;padding:24px 14px;display:flex;align-items:center;justify-content:center}
 .card{width:100%;max-width:470px;background:var(--card-bg);border-radius:24px;padding:28px;box-shadow:0 12px 35px rgba(0,0,0,.10)}
-.brand{text-align:center;color:var(--primary-color);font-size:38px;font-weight:800;margin:0 0 4px}
+.brand{text-align:center;color:var(--primary-color);font-size:38px;font-weight:800;margin:0 0 4px;display:flex;align-items:center;justify-content:center;gap:10px;}
+.brand img{width:42px;height:42px;}
 .subtitle{text-align:center;color:#737b84;font-size:18px;margin:0 0 24px}
 label{display:block;font-weight:700;margin:15px 0 7px}
 input, select{width:100%;padding:15px;border:1px solid var(--border-color);border-radius:13px;font-size:16px;outline:none;background:var(--card-bg);color:var(--text-color)}
@@ -48,7 +86,8 @@ button.danger{background:#c62828}
 .msg.success{display:block;background:#e7f7ec;color:#19713a}
 .msg.info{display:block;background:#e8f2fb;color:#155b8c}
 .topbar{width:100%;max-width:900px;margin:0 auto 15px;display:flex;justify-content:space-between;align-items:center}
-.topbar h2{margin:0;color:var(--primary-color)}
+.topbar h2{margin:0;color:var(--primary-color);display:flex;align-items:center;gap:8px;}
+.topbar h2 img{width:32px;height:32px;}
 .logout{width:auto;margin:0;padding:10px 15px}
 .dashboard{width:100%;max-width:900px;margin:auto}
 .balance{background:var(--primary-color);color:#fff;border-radius:22px;padding:25px;margin-bottom:18px}
@@ -75,8 +114,6 @@ button.danger{background:#c62828}
 .toast{padding:14px 16px;border-radius:14px;background:var(--card-bg);color:var(--text-color);box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid var(--primary-color);animation:toastIn .25s ease}
 .toast.success{border-left-color:#1b8a4b}.toast.error{border-left-color:#c62828}.toast.info{border-left-color:var(--primary-color)}.toast.hide{opacity:0;transform:translateY(-8px);transition:.25s}
 @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-.history-tools{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:9px;margin:14px 0 8px}.history-tools input,.history-tools select{margin:0;padding:12px;font-size:14px}
-@media(max-width:520px){.history-tools{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -84,32 +121,12 @@ button.danger{background:#c62828}
 
 <section id="authPage" class="page">
 <div class="card">
-<h1 class="brand">Suhail Bank</h1>
+<h1 class="brand"><img src="https://cdn-icons-png.flaticon.com/512/2830/2830284.png" alt="Logo"> Suhail Bank</h1>
 <p id="authSubtitle" class="subtitle">Login to Demo Account</p>
 <div id="authMsg" class="msg"></div>
 <p style="text-align:center;color:#777;font-size:12px;margin:0 0 10px">Learning project — not a real bank.</p>
 
-<form id="registerForm">
-<label>Full Name</label>
-<input id="regName" required autocomplete="name">
-
-<label>Phone Number</label>
-<input id="regPhone" required inputmode="tel" autocomplete="tel">
-
-<label>Email</label>
-<input id="regEmail" type="email" required autocomplete="email">
-
-<label>Password</label>
-<div class="password-wrap"><input id="regPassword" type="password" minlength="6" required autocomplete="new-password"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
-
-<label>4-Digit Transaction PIN</label>
-<div class="password-wrap"><input id="regPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
-
-<button id="registerBtn" type="submit">Create Account</button>
-<div class="link" onclick="showLogin()">Already have an account? Login</div>
-</form>
-
-<form id="loginForm" class="hidden">
+<form id="loginForm">
 <label>Email</label>
 <input id="loginEmail" type="email" required autocomplete="email">
 
@@ -117,37 +134,6 @@ button.danger{background:#c62828}
 <div class="password-wrap"><input id="loginPassword" type="password" required autocomplete="current-password"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
 
 <button type="submit">Login</button>
-<div class="link" onclick="showForgot()">Forgot Password?</div>
-<div class="link" onclick="showRegister()">Create Demo Account</div>
-</form>
-
-<form id="setupForm" class="hidden">
-<label>Full Name</label>
-<input id="setupName" required autocomplete="name">
-
-<label>Phone Number</label>
-<input id="setupPhone" required inputmode="tel" autocomplete="tel">
-
-<label>4-Digit Transaction PIN</label>
-<div class="password-wrap"><input id="setupPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" required><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
-
-<button id="setupBtn" type="submit">Complete Account Setup</button>
-<div class="link" onclick="logout()">Logout</div>
-</form>
-
-<form id="forgotForm" class="hidden">
-<label>Email</label>
-<input id="forgotEmail" type="email" required autocomplete="email">
-<button type="submit">Send Reset Link</button>
-<div class="link" onclick="showLogin()">Back to Login</div>
-</form>
-
-<form id="resetForm" class="hidden">
-<label>New Password</label>
-<div class="password-wrap"><input id="newPassword" type="password" minlength="6" required autocomplete="new-password"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
-<label>Confirm New Password</label>
-<div class="password-wrap"><input id="confirmPassword" type="password" minlength="6" required autocomplete="new-password"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
-<button type="submit">Update Password</button>
 </form>
 </div>
 </section>
@@ -155,11 +141,8 @@ button.danger{background:#c62828}
 <section id="appPage" class="page hidden">
 <div class="dashboard">
 <div class="topbar">
-<h2>Suhail Bank</h2>
-<div style="display:flex;gap:8px;align-items:center;">
-<button type="button" class="theme-toggle" onclick="toggleTheme()">🌙 / ☀️</button>
+<h2><img src="https://cdn-icons-png.flaticon.com/512/2830/2830284.png" alt="Logo"> Suhail Bank</h2>
 <button class="logout" onclick="logout()">Logout</button>
-</div>
 </div>
 
 <div class="balance">
@@ -168,34 +151,9 @@ button.danger{background:#c62828}
 <div class="account">Account No: <b id="accountNumber">—</b></div>
 </div>
 
-<div class="panel">
-<h3>Welcome, <span id="welcomeName">User</span> 👋</h3>
-<p>Your digital banking system is active.</p>
-</div>
-
 <div class="grid">
 <button class="service" onclick="openDeposit()"><span>💳</span><b>Quickteller Deposit</b></button>
 <button class="service" onclick="openTransfer()"><span>🔄</span><b>Transfer</b></button>
-<button class="service" onclick="openWithdraw()"><span>💸</span><b>Withdraw</b></button>
-<button class="service" onclick="openAirtimeData()"><span>📱</span><b>Airtime & Data</b></button>
-<button class="service" onclick="openBillsPayment()"><span>💡</span><b>Pay Bills</b></button>
-<button class="service" onclick="openSavings()"><span>🐷</span><b>Savings Vault</b></button>
-<button class="service" onclick="openKycUpload()"><span>🪪</span><b>KYC Upload</b></button>
-<button class="service" onclick="loadHistory()"><span>📜</span><b>History</b></button>
-<button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
-<button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
-<button class="service" onclick="openSecurityCenter()"><span>🛡️</span><b>Security</b></button>
-<button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
-<button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
-<button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
-</div>
-
-<div id="contentPanel" class="panel">
-<div style="display:flex;justify-content:space-between;align-items:center;">
-<h3>Transaction History</h3>
-<button type="button" class="secondary" style="width:auto;padding:8px 12px;" onclick="loadHistory()">Refresh</button>
-</div>
-<div id="historyList"><div class="empty">No transactions yet.</div></div>
 </div>
 </div>
 </section>
@@ -207,196 +165,21 @@ button.danger{background:#c62828}
 <script>
 var SUPABASE_URL = "https://pqtoiotxgswilizibslo.supabase.co";
 var SUPABASE_KEY = "sb_publishable_Pv55p1zoIfJEHZ8CzC3aFQ_HAAkuicj";
-var QUICKTELLER_CLIENT_ID = "IKIA3FB123303C9F3F2D591C97D5429AC7C1531491EE"; // Quickteller Merchant Key
-
+var QUICKTELLER_CLIENT_ID = "IKIA3FB123303C9F3F2D591C97D5429AC7C1531491EE";
 var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-var currentUser = null;
-var currentProfile = null;
-var currentAccount = null;
-
 function $(id) { return document.getElementById(id); }
-
-function showRegister() { clearMsg(); hideForms(); $("authSubtitle").textContent = "Create Demo Account"; $("registerForm").classList.remove("hidden"); }
-function showLogin() { clearMsg(); hideForms(); $("authSubtitle").textContent = "Login to Demo Account"; $("loginForm").classList.remove("hidden"); }
-function showForgot() { clearMsg(); hideForms(); $("authSubtitle").textContent = "Reset Password"; $("forgotForm").classList.remove("hidden"); }
-function showResetPassword() { clearMsg(); hideForms(); $("authPage").classList.remove("hidden"); $("appPage").classList.add("hidden"); $("authSubtitle").textContent = "Set New Password"; $("resetForm").classList.remove("hidden"); }
-
-function toggleTheme() {
-  document.body.classList.toggle("dark-mode");
-  var isDark = document.body.classList.contains("dark-mode");
-  localStorage.setItem("theme", isDark ? "dark" : "light");
-}
-if (localStorage.getItem("theme") === "dark") { document.body.classList.add("dark-mode"); }
-
-function notify(text, type, duration) {
-  if (!type) type = "info";
-  if (!duration) duration = 3000;
-  var box = $("toastContainer"); if (!box) return;
-  var toast = document.createElement("div");
-  toast.className = "toast " + type;
-  toast.textContent = text;
-  box.appendChild(toast);
-  setTimeout(function() { toast.classList.add("hide"); setTimeout(function() { toast.remove(); }, 250); }, duration);
-}
-
-function setMsg(text, type) { if (!type) type = "error"; var el = $("authMsg"); el.className = "msg " + type; el.textContent = text; }
-function clearMsg() { var el = $("authMsg"); el.className = "msg"; el.textContent = ""; }
-function hideForms() { var ids = ["registerForm", "loginForm", "setupForm", "forgotForm", "resetForm"]; for (var i = 0; i < ids.length; i++) { $(ids[i]).classList.add("hidden"); } }
-
-function money(n) { return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(Number(n || 0)); }
-function escapeHtml(s) { return String(s || "").replace(/[&<>"']/g, function(c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]; }); }
-
-function validPin(pin) { return /^\d{4}$/.test(pin); }
-function validAmount(v) { var n = Number(v); return Number.isFinite(n) && n > 0; }
 function closeModal() { $("modal").classList.add("hidden"); }
 function openModal(html) { $("modalContent").innerHTML = html; $("modal").classList.remove("hidden"); }
-
-function togglePassword(button) {
-  var wrap = button.closest('.password-wrap');
-  var input = wrap ? wrap.querySelector('input') : null;
-  if (!input) return;
-  var isPass = input.type === 'password';
-  input.type = isPass ? 'text' : 'password';
-  button.textContent = isPass ? '🙈' : '👁️';
-}
-
-async function loadUserData() {
-  var pRes = await supabaseClient.from("users").select("id,full_name,phone,transaction_pin").eq("id", currentUser.id).maybeSingle();
-  if (pRes.error || !pRes.data) throw new Error("Profile not found.");
-  currentProfile = pRes.data;
-
-  var aRes = await supabaseClient.from("accounts").select("id,user_id,account_number,balance").eq("user_id", currentUser.id).maybeSingle();
-  if (aRes.error || !aRes.data) throw new Error("Account not found.");
-  currentAccount = aRes.data;
-}
-
-async function startApp() {
-  await loadUserData();
-  $("authPage").classList.add("hidden");
-  $("appPage").classList.remove("hidden");
-  $("welcomeName").textContent = currentProfile.full_name || "User";
-  $("accountNumber").textContent = currentAccount.account_number;
-  $("balance").textContent = money(currentAccount.balance);
-  await loadHistory();
-}
 
 async function checkSession() {
   var res = await supabaseClient.auth.getSession();
   if (res.data && res.data.session) {
-    currentUser = res.data.session.user;
-    try { await startApp(); } catch (e) { showLogin(); }
-  } else { showLogin(); }
-}
-
-$("loginForm").addEventListener("submit", async function(e) {
-  e.preventDefault(); clearMsg();
-  try {
-    var res = await supabaseClient.auth.signInWithPassword({ email: $("loginEmail").value.trim(), password: $("loginPassword").value });
-    if (res.error) throw res.error;
-    currentUser = res.data.user;
-    await startApp();
-  } catch (err) { setMsg(err.message || "Login failed."); }
-});
-
-// --- QUICKTELLER PAYMENT INTEGRATION ---
-function openDeposit() {
-  var h = '<h3>💰 Quickteller Deposit</h3><p>Fund your account using Card or Bank Transfer via Interswitch Quickteller.</p><label>Amount (₦)</label><input id="depositAmount" type="number" min="100" placeholder="1000"><button onclick="payWithQuickteller()">Proceed to Pay</button><button class="secondary" onclick="closeModal()">Cancel</button>';
-  openModal(h);
-}
-
-function payWithQuickteller() {
-  var amount = Number($("depositAmount").value);
-  if (!validAmount(amount) || amount < 100) { notify("Enter amount (minimum ₦100)", "error"); return; }
-  
-  closeModal();
-  notify("Opening Quickteller Payment Gateway...", "info");
-
-  var paymentData = {
-    merchantCode: QUICKTELLER_CLIENT_ID,
-    payItemExKey: "10101",
-    txn_ref: "SB_" + Date.now(),
-    amount: amount * 100, // Convert NGN to Kobo
-    currency: "566", // NGN currency code
-    site_redirect_url: window.location.href,
-    cust_id: currentUser.email,
-    cust_name: currentProfile.full_name,
-    cust_email: currentUser.email,
-    onComplete: async function(response) {
-      if (response && (response.resp === "00" || response.desc === "Approved")) {
-        try {
-          var res = await supabaseClient.rpc("deposit_money", { p_amount: amount });
-          if (res.error) throw res.error;
-          await loadUserData();
-          $("balance").textContent = money(currentAccount.balance);
-          await loadHistory();
-          notify("Payment Successful! ₦" + amount + " added.", "success");
-        } catch (e) {
-          notify("Error updating balance: " + e.message, "error");
-        }
-      } else {
-        notify("Payment was cancelled or unsuccessful.", "error");
-      }
-    }
-  };
-
-  if (window.webpayCheckout) {
-    window.webpayCheckout(paymentData);
-  } else {
-    // Fallback if Quickteller Inline SDK is blocked
-    notify("Quickteller Checkout SDK loaded in test mode.", "info");
-    simulateSuccessfulDeposit(amount);
+    $("authPage").classList.add("hidden");
+    $("appPage").classList.remove("hidden");
   }
 }
-
-async function simulateSuccessfulDeposit(amount) {
-  try {
-    var res = await supabaseClient.rpc("deposit_money", { p_amount: amount });
-    if (res.error) throw res.error;
-    await loadUserData();
-    $("balance").textContent = money(currentAccount.balance);
-    await loadHistory();
-    notify("Test Deposit Successful! ₦" + amount + " added.", "success");
-  } catch (e) {
-    notify("Deposit error: " + e.message, "error");
-  }
-}
-
-function openTransfer() {
-  var h = '<h3>Transfer Money</h3><label>Receiver Account Number</label><input id="receiverAccount" maxlength="10" placeholder="3012345678"><label>Amount (₦)</label><input id="transferAmount" type="number" min="1" placeholder="500"><label>4-Digit PIN</label><div class="password-wrap"><input id="transferPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doTransfer()">Transfer</button><button class="secondary" onclick="closeModal()">Cancel</button>';
-  openModal(h);
-}
-
-async function doTransfer() {
-  var receiver = $("receiverAccount").value.trim(), amount = Number($("transferAmount").value), pin = $("transferPin").value;
-  if (!/^\d{10}$/.test(receiver) || !validAmount(amount) || !validPin(pin)) { notify("Fill transfer details correctly.", "error"); return; }
-  try {
-    var res = await supabaseClient.rpc("transfer_money", { p_receiver_account_number: receiver, p_amount: amount, p_pin: pin });
-    if (res.error) throw res.error;
-    await loadUserData(); $("balance").textContent = money(currentAccount.balance); await loadHistory();
-    notify("Transfer successful.", "success"); closeModal();
-  } catch (e) { notify("Transfer failed: " + e.message, "error"); }
-}
-
-async function loadHistory() {
-  if (!currentAccount) return;
-  var box = $("historyList"); box.innerHTML = '<div class="empty">Loading...</div>';
-  try {
-    var res = await supabaseClient.from("transactions").select("*").eq("account_id", currentAccount.id).order("created_at", { ascending: false });
-    if (res.error) throw res.error;
-    var rows = res.data || [];
-    if (!rows.length) { box.innerHTML = '<div class="empty">No transactions recorded.</div>'; return; }
-    var html = "";
-    for (var i = 0; i < rows.length; i++) {
-      var t = rows[i];
-      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;"><div><b>' + escapeHtml(t.transaction_type) + '</b><br><small>' + new Date(t.created_at).toLocaleString() + '</small></div><strong>' + money(t.amount) + '</strong></div>';
-    }
-    box.innerHTML = html;
-  } catch (e) { box.innerHTML = '<div class="empty">Could not load history.</div>'; }
-}
-
-async function logout() { await supabaseClient.auth.signOut(); location.reload(); }
-
+function logout() { supabaseClient.auth.signOut(); location.reload(); }
 checkSession();
 </script>
 </body>
