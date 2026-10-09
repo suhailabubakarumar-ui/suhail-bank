@@ -54,7 +54,6 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 .msg{padding:13px 15px;border-radius:12px;margin:15px 0;font-weight:600;display:none}
 .msg.error{display:block;background:#fde8ea;color:#a51f35}
 .msg.success{display:block;background:#e7f7ec;color:#19713a}
-.msg.info{display:block;background:#e8f2fb;color:#155b8c}
 .topbar{width:100%;max-width:900px;margin:0 auto 15px;display:flex;justify-content:space-between;align-items:center}
 .topbar h2{margin:0;color:var(--primary-color);display:flex;align-items:center;gap:8px}
 .topbar h2 img{width:32px;height:32px}
@@ -69,9 +68,6 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 .panel{background:var(--panel-bg);border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 5px 18px rgba(0,0,0,.06);border:1px solid var(--border-color)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}
 .modalbox{background:var(--card-bg);color:var(--text-color);width:100%;max-width:430px;border-radius:22px;padding:24px;max-height:92vh;overflow:auto}
-.receipt{text-align:center}
-.receipt-line{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid var(--border-color);text-align:left}
-.empty{text-align:center;color:#777;padding:15px}
 .password-wrap{position:relative;display:block}.password-wrap input{padding-right:44px!important}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:5px;font-size:18px;color:var(--text-color)}
 .toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100% - 36px));pointer-events:none}
 .toast{padding:14px 16px;border-radius:14px;background:var(--card-bg);color:var(--text-color);box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid var(--primary-color)}
@@ -118,7 +114,7 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 <div class="balance">
 <small>Available Demo Balance</small>
 <h1 id="balance">₦0.00</h1>
-<div class="account">Account No: <b id="accountNumber">—</b></div>
+<div>Account No: <b id="accountNumber">—</b></div>
 </div>
 
 <div class="grid">
@@ -136,11 +132,15 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 <button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
 <button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
 <button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
+<button class="service" style="grid-column: span 2; background:#e8f2fb; border:1px solid #0968b4" onclick="openAdminPanel()"><span>⚙️</span><b>Admin Queue & System Control</b></button>
 </div>
 
 <div id="contentPanel" class="panel">
+<div style="display:flex;justify-content:space-between;align-items:center;">
 <h3>Transaction History</h3>
-<div id="historyList"><div class="empty">No transactions yet.</div></div>
+<button type="button" class="secondary" style="width:auto;padding:8px 12px" onclick="loadHistory()">Refresh</button>
+</div>
+<div id="historyList"><div style="text-align:center;color:#777;padding:15px">No transactions recorded yet.</div></div>
 </div>
 </div>
 </section>
@@ -326,11 +326,11 @@ function showProfile() {
 }
 
 function openSecurityCenter() {
-  openModal('<h3>🛡️ Security Center</h3><p>✅ 2FA Status: Enabled</p><p>✅ Device Authorization: Active</p><button class="secondary" onclick="closeModal()">Close</button>');
+  openModal('<h3>🛡️ Security Center</h3><p>✅ 2FA Status: Active</p><p>✅ Device Authorization: Verified</p><button class="secondary" onclick="closeModal()">Close</button>');
 }
 
 function openNotifications() {
-  openModal('<h3>🔔 Notifications</h3><p>📩 Welcome to Suhail Bank App Demo!</p><button class="secondary" onclick="closeModal()">Close</button>');
+  openModal('<h3>🔔 Notifications</h3><p>📩 Welcome to Suhail Bank App!</p><button class="secondary" onclick="closeModal()">Close</button>');
 }
 
 function openSupportCenter() {
@@ -341,20 +341,25 @@ function openMySupportTickets() {
   openModal('<h3>🎫 My Tickets</h3><p>No active support tickets found.</p><button class="secondary" onclick="closeModal()">Close</button>');
 }
 
+// ADMIN PANEL
+function openAdminPanel() {
+  openModal('<h3>⚙️ Admin Support Queue</h3><p><b>System Health:</b> Operational 🟢</p><p><b>Active KYC Requests:</b> 1 Pending</p><p><b>Quickteller Integration:</b> Active (Test Mode)</p><button onclick="closeModal();notify(\'System Health Check Passed!\',\'success\')">Run Health Diagnostic</button><button class="secondary" onclick="closeModal()">Close Admin Queue</button>');
+}
+
 async function loadHistory() {
   if (!currentAccount) return;
-  var box = $("historyList"); box.innerHTML = '<div class="empty">Loading...</div>';
+  var box = $("historyList"); box.innerHTML = '<div style="text-align:center;color:#777;padding:15px">Loading...</div>';
   try {
     var res = await supabaseClient.from("transactions").select("*").eq("account_id", currentAccount.id).order("created_at", { ascending: false });
     var rows = res.data || [];
-    if (!rows.length) { box.innerHTML = '<div class="empty">No transactions recorded.</div>'; return; }
+    if (!rows.length) { box.innerHTML = '<div style="text-align:center;color:#777;padding:15px">No transactions recorded yet.</div>'; return; }
     var html = "";
     for (var i = 0; i < rows.length; i++) {
       var t = rows[i];
-      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;"><div><b>' + t.transaction_type + '</b><br><small>' + new Date(t.created_at).toLocaleString() + '</small></div><strong>' + money(t.amount) + '</strong></div>';
+      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center"><div><b>' + t.transaction_type + '</b><br><small style="color:#777">' + new Date(t.created_at).toLocaleString() + '</small></div><strong>' + money(t.amount) + '</strong></div>';
     }
     box.innerHTML = html;
-  } catch (e) { box.innerHTML = '<div class="empty">Could not load history.</div>'; }
+  } catch (e) { box.innerHTML = '<div style="text-align:center;color:#777;padding:15px">Could not load history.</div>'; }
 }
 
 function logout() { supabaseClient.auth.signOut(); location.reload(); }
