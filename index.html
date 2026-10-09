@@ -70,6 +70,9 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 .password-wrap{position:relative;display:block}.password-wrap input{padding-right:44px!important}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:5px;font-size:18px;color:var(--text-color)}
 .toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100% - 36px));pointer-events:none}
 .toast{padding:14px 16px;border-radius:14px;background:var(--card-bg);color:var(--text-color);box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid var(--primary-color)}
+.receipt-box{background:#fff;color:#000;padding:20px;border-radius:12px;border:1px dashed #ccc;text-align:left;font-family:sans-serif}
+.receipt-box h2{color:#0968b4;margin:0 0 5px;text-align:center}
+.receipt-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px}
 </style>
 </head>
 <body>
@@ -131,7 +134,6 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 <button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
 <button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
 <button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
-<!-- Admin Only Button (Hidden for normal users) -->
 <button id="adminServiceBtn" class="service hidden" style="grid-column: span 2; background:#e8f2fb; border:1px solid #0968b4" onclick="openAdminPanel()"><span>⚙️</span><b>Admin Queue & System Control</b></button>
 </div>
 
@@ -187,6 +189,17 @@ function togglePassword(button) {
   button.textContent = input.type === 'password' ? '👁️' : '🙈';
 }
 
+async function logTransaction(type, amount) {
+  if(!currentAccount) return;
+  try {
+    await supabaseClient.from("transactions").insert({
+      account_id: currentAccount.id,
+      transaction_type: type,
+      amount: amount
+    });
+  } catch(e) { console.log(e); }
+}
+
 async function loadUserData() {
   var pRes = await supabaseClient.from("users").select("*").eq("id", currentUser.id).maybeSingle();
   currentProfile = pRes.data;
@@ -199,7 +212,6 @@ async function startApp() {
   $("authPage").classList.add("hidden");
   $("appPage").classList.remove("hidden");
   
-  // Check if current user is Admin
   if (currentUser.email.includes("admin") || currentUser.email === "suhailabubakarumar@gmail.com") {
     $("adminServiceBtn").classList.remove("hidden");
   } else {
@@ -245,6 +257,40 @@ $("loginForm").addEventListener("submit", async function(e) {
   } catch(err) { setMsg(err.message); }
 });
 
+// PDF RECEIPT GENERATOR
+function showReceiptModal(title, details) {
+  var refNo = "REF-" + Math.floor(10000000 + Math.random() * 90000000);
+  var html = `
+    <div id="receiptToPrint" class="receipt-box">
+      <h2>Suhail Bank</h2>
+      <p style="text-align:center;font-size:12px;color:#666;margin-bottom:15px">Official Transaction Receipt</p>
+      <div class="receipt-row"><span>Type:</span> <b>${title}</b></div>
+      <div class="receipt-row"><span>Amount:</span> <b>${money(details.amount)}</b></div>
+      <div class="receipt-row"><span>Sender:</span> <b>${currentProfile?currentProfile.full_name:'User'}</b></div>
+      <div class="receipt-row"><span>Account No:</span> <b>${currentAccount.account_number}</b></div>
+      <div class="receipt-row"><span>Destination:</span> <b>${details.dest || 'N/A'}</b></div>
+      <div class="receipt-row"><span>Reference:</span> <b>${refNo}</b></div>
+      <div class="receipt-row"><span>Date:</span> <b>${new Date().toLocaleString()}</b></div>
+      <div class="receipt-row"><span>Status:</span> <b style="color:green">SUCCESSFUL ✅</b></div>
+    </div>
+    <button onclick="downloadPDFReceipt('${refNo}')">🖨️ Download / Print Receipt</button>
+    <button class="secondary" onclick="closeModal()">Close</button>
+  `;
+  openModal(html);
+}
+
+function downloadPDFReceipt(refNo) {
+  var element = document.getElementById('receiptToPrint');
+  var opt = {
+    margin:       0.5,
+    filename:     'SuhailBank_Receipt_' + refNo + '.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+  html2pdf().set(opt).from(element).save();
+}
+
 // QUICKTELLER DEPOSIT
 function openDeposit() {
   openModal('<h3>💳 Quickteller Deposit</h3><label>Amount (₦)</label><input id="depAmt" type="number" min="100" placeholder="1000"><button onclick="payQuickteller()">Proceed to Pay</button><button class="secondary" onclick="closeModal()">Cancel</button>');
@@ -261,12 +307,18 @@ function payQuickteller() {
       onComplete: async function(r) {
         if (r && (r.resp === "00" || r.desc === "Approved")) {
           await supabaseClient.rpc("deposit_money", { p_amount: amt });
-          await startApp(); notify("Deposit Successful!", "success");
+          await logTransaction("Deposit", amt);
+          await startApp();
+          showReceiptModal("Deposit Successful", { amount: amt, dest: "Suhail Bank Account" });
         }
       }
     });
   } else {
-    supabaseClient.rpc("deposit_money", { p_amount: amt }).then(() => { startApp(); notify("Test Deposit Successful!", "success"); });
+    supabaseClient.rpc("deposit_money", { p_amount: amt }).then(async () => { 
+      await logTransaction("Deposit", amt);
+      await startApp(); 
+      showReceiptModal("Deposit Successful", { amount: amt, dest: "Suhail Bank Account" });
+    });
   }
 }
 
@@ -294,12 +346,21 @@ async function doTransfer() {
   if (bank === "Suhail Bank") {
     var res = await supabaseClient.rpc("transfer_money", { p_receiver_account_number: acc, p_amount: amt, p_pin: pin });
     if (res.error) notify(res.error.message, "error");
-    else { closeModal(); await startApp(); notify("Suhail Bank Transfer Successful!", "success"); }
+    else { 
+      closeModal(); 
+      await logTransaction("Transfer Sent to " + acc, -amt);
+      await startApp(); 
+      showReceiptModal("Transfer Successful", { amount: amt, dest: bank + " (" + acc + ")" });
+    }
   } else {
-    // Interbank Transfer (Other Nigerian Banks via BaaS/API)
     var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
     if (res.error) notify(res.error.message, "error");
-    else { closeModal(); await startApp(); notify("Transfer of ₦" + amt + " to " + bank + " (" + acc + ") Successful!", "success"); }
+    else { 
+      closeModal(); 
+      await logTransaction("Transfer to " + bank, -amt);
+      await startApp(); 
+      showReceiptModal("Interbank Transfer Successful", { amount: amt, dest: bank + " (" + acc + ")" });
+    }
   }
 }
 
@@ -310,27 +371,42 @@ async function doWithdraw() {
   var amt = Number($("wdAmt").value), pin = $("wdPin").value;
   var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
   if(res.error) notify(res.error.message, "error");
-  else { closeModal(); await startApp(); notify("Withdrawal Successful!", "success"); }
+  else { 
+    closeModal(); 
+    await logTransaction("Withdrawal", -amt);
+    await startApp(); 
+    showReceiptModal("Withdrawal Successful", { amount: amt, dest: "Cash Withdrawal" });
+  }
 }
 
 function openAirtimeData() {
   openModal('<h3>📱 Airtime & Data</h3><label>Network</label><select id="net"><option>MTN</option><option>Airtel</option><option>Glo</option><option>9mobile</option></select><label>Phone Number</label><input id="ph" type="tel"><label>Amount (₦)</label><input id="amt" type="number"><label>PIN</label><input id="pin" type="password" maxlength="4"><button onclick="doAirtime()">Purchase Airtime</button><button class="secondary" onclick="closeModal()">Cancel</button>');
 }
 async function doAirtime() {
-  var amt = Number($("amt").value), pin = $("pin").value;
+  var amt = Number($("amt").value), pin = $("pin").value, net = $("net").value, ph = $("ph").value;
   var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
   if(res.error) notify(res.error.message, "error");
-  else { closeModal(); await startApp(); notify("Airtime Purchase Successful!", "success"); }
+  else { 
+    closeModal(); 
+    await logTransaction("Airtime (" + net + " - " + ph + ")", -amt);
+    await startApp(); 
+    showReceiptModal("Airtime Purchase", { amount: amt, dest: net + " (" + ph + ")" });
+  }
 }
 
 function openBillsPayment() {
-  openModal('<h3>💡 Pay Bills</h3><label>Biller</label><select><option>KEDCO Electricity</option><option>IKEDC Electricity</option><option>DSTV / GOTV</option></select><label>Meter / Account No</label><input type="text"><label>Amount (₦)</label><input id="bAmt" type="number"><label>PIN</label><input id="bPin" type="password" maxlength="4"><button onclick="doBills()">Pay Bill</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+  openModal('<h3>💡 Pay Bills</h3><label>Biller</label><select id="biller"><option>KEDCO Electricity</option><option>IKEDC Electricity</option><option>DSTV / GOTV</option></select><label>Meter / Account No</label><input id="bAcc" type="text"><label>Amount (₦)</label><input id="bAmt" type="number"><label>PIN</label><input id="bPin" type="password" maxlength="4"><button onclick="doBills()">Pay Bill</button><button class="secondary" onclick="closeModal()">Cancel</button>');
 }
 async function doBills() {
-  var amt = Number($("bAmt").value), pin = $("bPin").value;
+  var amt = Number($("bAmt").value), pin = $("bPin").value, biller = $("biller").value;
   var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
   if(res.error) notify(res.error.message, "error");
-  else { closeModal(); await startApp(); notify("Bill Paid Successfully!", "success"); }
+  else { 
+    closeModal(); 
+    await logTransaction("Bill Paid (" + biller + ")", -amt);
+    await startApp(); 
+    showReceiptModal("Bill Payment Successful", { amount: amt, dest: biller });
+  }
 }
 
 function openSavings() {
@@ -340,7 +416,11 @@ async function doSave() {
   var amt = Number($("sAmt").value), pin = $("sPin").value;
   var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
   if(res.error) notify(res.error.message, "error");
-  else { closeModal(); await startApp(); notify("Funds Saved Successfully!", "success"); }
+  else { 
+    closeModal(); 
+    await logTransaction("Savings Lock", -amt);
+    await startApp(); notify("Funds Saved Successfully!", "success"); 
+  }
 }
 
 function openKycUpload() {
@@ -385,7 +465,8 @@ async function loadHistory() {
     var html = "";
     for (var i = 0; i < rows.length; i++) {
       var t = rows[i];
-      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center"><div><b>' + t.transaction_type + '</b><br><small style="color:#777">' + new Date(t.created_at).toLocaleString() + '</small></div><strong>' + money(t.amount) + '</strong></div>';
+      var isNeg = Number(t.amount) < 0;
+      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center"><div><b>' + t.transaction_type + '</b><br><small style="color:#777">' + new Date(t.created_at).toLocaleString() + '</small></div><strong style="color:' + (isNeg?'#c62828':'#19713a') + '">' + money(t.amount) + '</strong></div>';
     }
     box.innerHTML = html;
   } catch (e) { box.innerHTML = '<div style="text-align:center;color:#777;padding:15px">Could not load history.</div>'; }
