@@ -31,7 +31,7 @@ document.head.appendChild(link);
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="https://newwebpay.interswitchng.com/inline-checkout.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
 <style>
 :root { --bg-color: #eef4f9; --text-color: #17202a; --card-bg: #ffffff; --border-color: #d3dae1; --primary-color: #0968b4; --panel-bg: #ffffff; }
 body.dark-mode { --bg-color: #12181f; --text-color: #e0e6ed; --card-bg: #1e2732; --border-color: #334155; --panel-bg: #1e2732; }
@@ -120,7 +120,7 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 </div>
 
 <div class="grid">
-<button class="service" onclick="openDeposit()"><span>💳</span><b>Quickteller Deposit</b></button>
+<button class="service" onclick="openDeposit()"><span>💳</span><b>Paystack Deposit</b></button>
 <button class="service" onclick="openTransfer()"><span>🔄</span><b>Transfer</b></button>
 <button class="service" onclick="openWithdraw()"><span>💸</span><b>Withdraw</b></button>
 <button class="service" onclick="openAirtimeData()"><span>📱</span><b>Airtime & Data</b></button>
@@ -154,14 +154,14 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 <script>
 var SUPABASE_URL = "https://pqtoiotxgswilizibslo.supabase.co";
 var SUPABASE_KEY = "sb_publishable_Pv55p1zoIfJEHZ8CzC3aFQ_HAAkuicj";
-var QUICKTELLER_CLIENT_ID = "IKIA3FB123303C9F3F2D591C97D5429AC7C1531491EE";
+var PAYSTACK_PUBLIC_KEY = "pk_test_5bf4108acb22d7518701ace5d96cde45e945600c";
 var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 var currentUser = null, currentProfile = null, currentAccount = null;
 
 function $(id) { return document.getElementById(id); }
 function showRegister() { clearMsg(); $("registerForm").classList.remove("hidden"); $("loginForm").classList.add("hidden"); }
-function showLogin() { clearMsg(); $("loginForm").classList.remove("hidden"); $("registerForm").classList.add("hidden"); }
+function showLogin() { clearMsg(); $("loginForm").classList.add("hidden"); $("registerForm").classList.remove("hidden"); }
 function setMsg(text, type) { var el = $("authMsg"); el.className = "msg " + (type||"error"); el.textContent = text; }
 function clearMsg() { var el = $("authMsg"); el.className = "msg"; el.textContent = ""; }
 function money(n) { return "₦" + Number(n||0).toLocaleString('en-NG', {minimumFractionDigits:2}); }
@@ -291,35 +291,34 @@ function downloadPDFReceipt(refNo) {
   html2pdf().set(opt).from(element).save();
 }
 
-// QUICKTELLER DEPOSIT
+// PAYSTACK DEPOSIT INTEGRATION
 function openDeposit() {
-  openModal('<h3>💳 Quickteller Deposit</h3><label>Amount (₦)</label><input id="depAmt" type="number" min="100" placeholder="1000"><button onclick="payQuickteller()">Proceed to Pay</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+  openModal('<h3>💳 Paystack Deposit</h3><label>Amount (₦)</label><input id="depAmt" type="number" min="100" placeholder="1000"><button onclick="payWithPaystack()">Fund with Paystack</button><button class="secondary" onclick="closeModal()">Cancel</button>');
 }
 
-function payQuickteller() {
+function payWithPaystack() {
   var amt = Number($("depAmt").value);
   if (!amt || amt < 100) { notify("Enter minimum ₦100", "error"); return; }
   closeModal();
-  if (window.webpayCheckout) {
-    window.webpayCheckout({
-      merchantCode: QUICKTELLER_CLIENT_ID, payItemExKey: "10101", txn_ref: "SB_" + Date.now(),
-      amount: amt * 100, currency: "566", cust_email: currentUser.email,
-      onComplete: async function(r) {
-        if (r && (r.resp === "00" || r.desc === "Approved")) {
-          await supabaseClient.rpc("deposit_money", { p_amount: amt });
-          await logTransaction("Deposit", amt);
-          await startApp();
-          showReceiptModal("Deposit Successful", { amount: amt, dest: "Suhail Bank Account" });
-        }
-      }
-    });
-  } else {
-    supabaseClient.rpc("deposit_money", { p_amount: amt }).then(async () => { 
-      await logTransaction("Deposit", amt);
-      await startApp(); 
-      showReceiptModal("Deposit Successful", { amount: amt, dest: "Suhail Bank Account" });
-    });
-  }
+
+  var handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: currentUser.email,
+    amount: amt * 100, // Paystack uses kobo
+    currency: 'NGN',
+    ref: 'SB_' + Math.floor((Math.random() * 1000000000) + 1),
+    callback: async function(response) {
+      await supabaseClient.rpc("deposit_money", { p_amount: amt });
+      await logTransaction("Paystack Deposit", amt);
+      await startApp();
+      showReceiptModal("Paystack Deposit Successful", { amount: amt, dest: "Suhail Bank Wallet" });
+      notify("Account funded successfully via Paystack!", "success");
+    },
+    onClose: function() {
+      notify("Payment window closed.", "info");
+    }
+  });
+  handler.openIframe();
 }
 
 // TRANSFER WITH BANK SELECTOR
@@ -448,11 +447,11 @@ function openSupportCenter() {
 }
 
 function openMySupportTickets() {
-  openModal('<h3>🎫 My Tickets</h3><p>No active support tickets found.</p><button class="secondary" onclick="closeModal()">Close</button>');
+  openModal('### 🎫 My Tickets</h3><p>No active support tickets found.</p><button class="secondary" onclick="closeModal()">Close</button>');
 }
 
 function openAdminPanel() {
-  openModal('<h3>⚙️ Admin Support Queue</h3><p><b>System Health:</b> Operational 🟢</p><p><b>Active KYC Requests:</b> 1 Pending</p><p><b>Quickteller Integration:</b> Active (Test Mode)</p><button onclick="closeModal();notify(\'System Health Check Passed!\',\'success\')">Run Health Diagnostic</button><button class="secondary" onclick="closeModal()">Close Admin Queue</button>');
+  openModal('<h3>⚙️ Admin Support Queue</h3><p><b>System Health:</b> Operational 🟢</p><p><b>Active KYC Requests:</b> 1 Pending</p><p><b>Paystack Integration:</b> Active (Test Mode)</p><button onclick="closeModal();notify(\'System Health Check Passed!\',\'success\')">Run Health Diagnostic</button><button class="secondary" onclick="closeModal()">Close Admin Queue</button>');
 }
 
 async function loadHistory() {
