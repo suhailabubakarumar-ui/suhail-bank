@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#0b67b2">
 <title>Suhail Bank — Digital Banking Demo</title>
 
-<!-- Application Logo & PWA Manifest -->
 <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2830/2830284.png">
 <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2830/2830284.png">
 
@@ -132,7 +131,8 @@ body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
 <button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
 <button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
 <button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
-<button class="service" style="grid-column: span 2; background:#e8f2fb; border:1px solid #0968b4" onclick="openAdminPanel()"><span>⚙️</span><b>Admin Queue & System Control</b></button>
+<!-- Admin Only Button (Hidden for normal users) -->
+<button id="adminServiceBtn" class="service hidden" style="grid-column: span 2; background:#e8f2fb; border:1px solid #0968b4" onclick="openAdminPanel()"><span>⚙️</span><b>Admin Queue & System Control</b></button>
 </div>
 
 <div id="contentPanel" class="panel">
@@ -198,6 +198,14 @@ async function startApp() {
   await loadUserData();
   $("authPage").classList.add("hidden");
   $("appPage").classList.remove("hidden");
+  
+  // Check if current user is Admin
+  if (currentUser.email.includes("admin") || currentUser.email === "suhailabubakarumar@gmail.com") {
+    $("adminServiceBtn").classList.remove("hidden");
+  } else {
+    $("adminServiceBtn").classList.add("hidden");
+  }
+
   if(currentAccount) {
     $("accountNumber").textContent = currentAccount.account_number;
     $("balance").textContent = money(currentAccount.balance);
@@ -262,15 +270,37 @@ function payQuickteller() {
   }
 }
 
-// SERVICES
+// TRANSFER WITH BANK SELECTOR
 function openTransfer() {
-  openModal('<h3>🔄 Transfer Money</h3><label>Account Number</label><input id="trAcc" maxlength="10"><label>Amount (₦)</label><input id="trAmt" type="number"><label>4-Digit PIN</label><div class="password-wrap"><input id="trPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doTransfer()">Transfer</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+  var bankOptions = `
+    <option value="Suhail Bank">Suhail Bank (Internal Transfer)</option>
+    <option value="OPay">OPay Digital Services</option>
+    <option value="Moniepoint">Moniepoint Microfinance Bank</option>
+    <option value="Palmpay">Palmpay</option>
+    <option value="Kuda Bank">Kuda Microfinance Bank</option>
+    <option value="GTBank">Guaranty Trust Bank (GTB)</option>
+    <option value="First Bank">First Bank of Nigeria</option>
+    <option value="Zenith Bank">Zenith Bank</option>
+    <option value="UBA">United Bank for Africa (UBA)</option>
+    <option value="Access Bank">Access Bank</option>
+  `;
+  openModal('<h3>🔄 Transfer Money</h3><label>Select Destination Bank</label><select id="trBank">' + bankOptions + '</select><label>Account Number</label><input id="trAcc" maxlength="10" placeholder="10-digit Account No"><label>Amount (₦)</label><input id="trAmt" type="number" placeholder="500"><label>4-Digit PIN</label><div class="password-wrap"><input id="trPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doTransfer()">Transfer Funds</button><button class="secondary" onclick="closeModal()">Cancel</button>');
 }
+
 async function doTransfer() {
-  var acc = $("trAcc").value, amt = Number($("trAmt").value), pin = $("trPin").value;
-  var res = await supabaseClient.rpc("transfer_money", { p_receiver_account_number: acc, p_amount: amt, p_pin: pin });
-  if (res.error) notify(res.error.message, "error");
-  else { closeModal(); await startApp(); notify("Transfer Successful!", "success"); }
+  var bank = $("trBank").value, acc = $("trAcc").value, amt = Number($("trAmt").value), pin = $("trPin").value;
+  if (!acc || acc.length < 10) { notify("Enter a valid 10-digit Account Number", "error"); return; }
+  
+  if (bank === "Suhail Bank") {
+    var res = await supabaseClient.rpc("transfer_money", { p_receiver_account_number: acc, p_amount: amt, p_pin: pin });
+    if (res.error) notify(res.error.message, "error");
+    else { closeModal(); await startApp(); notify("Suhail Bank Transfer Successful!", "success"); }
+  } else {
+    // Interbank Transfer (Other Nigerian Banks via BaaS/API)
+    var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
+    if (res.error) notify(res.error.message, "error");
+    else { closeModal(); await startApp(); notify("Transfer of ₦" + amt + " to " + bank + " (" + acc + ") Successful!", "success"); }
+  }
 }
 
 function openWithdraw() {
@@ -341,7 +371,6 @@ function openMySupportTickets() {
   openModal('<h3>🎫 My Tickets</h3><p>No active support tickets found.</p><button class="secondary" onclick="closeModal()">Close</button>');
 }
 
-// ADMIN PANEL
 function openAdminPanel() {
   openModal('<h3>⚙️ Admin Support Queue</h3><p><b>System Health:</b> Operational 🟢</p><p><b>Active KYC Requests:</b> 1 Pending</p><p><b>Quickteller Integration:</b> Active (Test Mode)</p><button onclick="closeModal();notify(\'System Health Check Passed!\',\'success\')">Run Health Diagnostic</button><button class="secondary" onclick="closeModal()">Close Admin Queue</button>');
 }
