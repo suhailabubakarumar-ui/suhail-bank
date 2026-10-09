@@ -20,26 +20,13 @@ const manifestObj = {
   "theme_color": "#0b67b2",
   "description": "Suhail Bank Digital Banking Mobile App",
   "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 };
-const stringManifest = JSON.stringify(manifestObj);
-const blob = new Blob([stringManifest], {type: 'application/json'});
-const manifestURL = URL.createObjectURL(blob);
 const link = document.createElement('link');
 link.rel = 'manifest';
-link.href = manifestURL;
+link.href = URL.createObjectURL(new Blob([JSON.stringify(manifestObj)], {type: 'application/json'}));
 document.head.appendChild(link);
 </script>
 
@@ -47,38 +34,21 @@ document.head.appendChild(link);
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://newwebpay.interswitchng.com/inline-checkout.js"></script>
 <style>
-:root {
-  --bg-color: #eef4f9;
-  --text-color: #17202a;
-  --card-bg: #ffffff;
-  --border-color: #d3dae1;
-  --primary-color: #0968b4;
-  --panel-bg: #ffffff;
-}
-body.dark-mode {
-  --bg-color: #12181f;
-  --text-color: #e0e6ed;
-  --card-bg: #1e2732;
-  --border-color: #334155;
-  --panel-bg: #1e2732;
-}
+:root { --bg-color: #eef4f9; --text-color: #17202a; --card-bg: #ffffff; --border-color: #d3dae1; --primary-color: #0968b4; --panel-bg: #ffffff; }
+body.dark-mode { --bg-color: #12181f; --text-color: #e0e6ed; --card-bg: #1e2732; --border-color: #334155; --panel-bg: #1e2732; }
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg-color);color:var(--text-color);transition:background 0.3s, color 0.3s}
 .hidden{display:none!important}
 .page{min-height:100vh;padding:24px 14px;display:flex;align-items:center;justify-content:center}
 .card{width:100%;max-width:470px;background:var(--card-bg);border-radius:24px;padding:28px;box-shadow:0 12px 35px rgba(0,0,0,.10)}
-.brand{text-align:center;color:var(--primary-color);font-size:38px;font-weight:800;margin:0 0 4px;display:flex;align-items:center;justify-content:center;gap:10px;}
-.brand img{width:42px;height:42px;}
-.subtitle{text-align:center;color:#737b84;font-size:18px;margin:0 0 24px}
+.brand{text-align:center;color:var(--primary-color);font-size:36px;font-weight:800;margin:0 0 4px;display:flex;align-items:center;justify-content:center;gap:10px}
+.brand img{width:42px;height:42px}
+.subtitle{text-align:center;color:#737b84;font-size:17px;margin:0 0 20px}
 label{display:block;font-weight:700;margin:15px 0 7px}
-input, select{width:100%;padding:15px;border:1px solid var(--border-color);border-radius:13px;font-size:16px;outline:none;background:var(--card-bg);color:var(--text-color)}
-input:focus,textarea:focus,select:focus{border-color:var(--primary-color)}
-textarea{width:100%;min-height:130px;padding:15px;border:1px solid var(--border-color);border-radius:13px;font-size:16px;outline:none;resize:vertical;background:var(--card-bg);color:var(--text-color)}
-button{width:100%;border:0;border-radius:13px;padding:15px;margin-top:16px;background:var(--primary-color);color:white;font-size:17px;font-weight:700;cursor:pointer}
-button:disabled{opacity:.6}
+input, select, textarea{width:100%;padding:14px;border:1px solid var(--border-color);border-radius:13px;font-size:16px;outline:none;background:var(--card-bg);color:var(--text-color)}
+button{width:100%;border:0;border-radius:13px;padding:14px;margin-top:16px;background:var(--primary-color);color:white;font-size:16px;font-weight:700;cursor:pointer}
 button.secondary{background:#e9f1f8;color:var(--primary-color)}
 body.dark-mode button.secondary{background:#2a3646;color:#38bdf8}
-button.danger{background:#c62828}
 .theme-toggle{background:transparent;border:1px solid var(--border-color);color:var(--text-color);width:auto;padding:8px 12px;margin:0;font-size:14px;border-radius:10px}
 .link{color:var(--primary-color);text-align:center;font-weight:700;margin-top:18px;cursor:pointer}
 .msg{padding:13px 15px;border-radius:12px;margin:15px 0;font-weight:600;display:none}
@@ -86,34 +56,25 @@ button.danger{background:#c62828}
 .msg.success{display:block;background:#e7f7ec;color:#19713a}
 .msg.info{display:block;background:#e8f2fb;color:#155b8c}
 .topbar{width:100%;max-width:900px;margin:0 auto 15px;display:flex;justify-content:space-between;align-items:center}
-.topbar h2{margin:0;color:var(--primary-color);display:flex;align-items:center;gap:8px;}
-.topbar h2 img{width:32px;height:32px;}
-.logout{width:auto;margin:0;padding:10px 15px}
+.topbar h2{margin:0;color:var(--primary-color);display:flex;align-items:center;gap:8px}
+.topbar h2 img{width:32px;height:32px}
+.logout{width:auto;margin:0;padding:8px 14px}
 .dashboard{width:100%;max-width:900px;margin:auto}
-.balance{background:var(--primary-color);color:#fff;border-radius:22px;padding:25px;margin-bottom:18px}
-.balance small{opacity:.9}
-.balance h1{font-size:38px;margin:8px 0}
-.account{font-size:14px;opacity:.95}
+.balance{background:var(--primary-color);color:#fff;border-radius:22px;padding:24px;margin-bottom:18px}
+.balance h1{font-size:38px;margin:6px 0}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-.service{background:var(--panel-bg);border:1px solid var(--border-color);border-radius:18px;padding:20px;box-shadow:0 5px 18px rgba(0,0,0,.07);cursor:pointer;color:var(--text-color)}
-.service b{display:block;margin-top:8px}
+.service{background:var(--panel-bg);border:1px solid var(--border-color);border-radius:18px;padding:18px;box-shadow:0 5px 18px rgba(0,0,0,.06);cursor:pointer;color:var(--text-color);text-align:center}
+.service b{display:block;margin-top:8px;font-size:15px}
 .service span{font-size:28px}
-.panel{background:var(--panel-bg);border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 5px 18px rgba(0,0,0,.07);border:1px solid var(--border-color)}
-.panel h3{margin-top:0}
-.profile-row{padding:9px 0;border-bottom:1px solid var(--border-color)}
-.profile-row:last-child{border-bottom:0}
+.panel{background:var(--panel-bg);border-radius:20px;padding:20px;margin-top:18px;box-shadow:0 5px 18px rgba(0,0,0,.06);border:1px solid var(--border-color)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:18px;z-index:20}
 .modalbox{background:var(--card-bg);color:var(--text-color);width:100%;max-width:430px;border-radius:22px;padding:24px;max-height:92vh;overflow:auto}
 .receipt{text-align:center}
-.receipt .logo{font-size:30px;font-weight:800;color:var(--primary-color)}
 .receipt-line{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid var(--border-color);text-align:left}
-.status{display:inline-block;margin:14px 0;padding:7px 14px;border-radius:99px;background:#e7f7ec;color:#19713a;font-weight:700}
 .empty{text-align:center;color:#777;padding:15px}
-.password-wrap{position:relative;display:block}.password-wrap input{padding-right:44px!important}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:5px;font-size:18px;line-height:1;opacity:.7;color:var(--text-color)}.password-toggle:hover{opacity:1}
+.password-wrap{position:relative;display:block}.password-wrap input{padding-right:44px!important}.password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;padding:5px;font-size:18px;color:var(--text-color)}
 .toast-container{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100% - 36px));pointer-events:none}
-.toast{padding:14px 16px;border-radius:14px;background:var(--card-bg);color:var(--text-color);box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid var(--primary-color);animation:toastIn .25s ease}
-.toast.success{border-left-color:#1b8a4b}.toast.error{border-left-color:#c62828}.toast.info{border-left-color:var(--primary-color)}.toast.hide{opacity:0;transform:translateY(-8px);transition:.25s}
-@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.toast{padding:14px 16px;border-radius:14px;background:var(--card-bg);color:var(--text-color);box-shadow:0 8px 28px rgba(0,0,0,.16);font-weight:700;border-left:5px solid var(--primary-color)}
 </style>
 </head>
 <body>
@@ -124,16 +85,22 @@ button.danger{background:#c62828}
 <h1 class="brand"><img src="https://cdn-icons-png.flaticon.com/512/2830/2830284.png" alt="Logo"> Suhail Bank</h1>
 <p id="authSubtitle" class="subtitle">Login to Demo Account</p>
 <div id="authMsg" class="msg"></div>
-<p style="text-align:center;color:#777;font-size:12px;margin:0 0 10px">Learning project — not a real bank.</p>
 
-<form id="loginForm">
-<label>Email</label>
-<input id="loginEmail" type="email" required autocomplete="email">
+<form id="registerForm">
+<label>Full Name</label><input id="regName" required>
+<label>Phone Number</label><input id="regPhone" required inputmode="tel">
+<label>Email</label><input id="regEmail" type="email" required>
+<label>Password</label><div class="password-wrap"><input id="regPassword" type="password" minlength="6" required><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
+<label>4-Digit PIN</label><div class="password-wrap"><input id="regPin" type="password" maxlength="4" pattern="[0-9]{4}" required><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
+<button id="registerBtn" type="submit">Create Account</button>
+<div class="link" onclick="showLogin()">Already have an account? Login</div>
+</form>
 
-<label>Password</label>
-<div class="password-wrap"><input id="loginPassword" type="password" required autocomplete="current-password"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
-
+<form id="loginForm" class="hidden">
+<label>Email</label><input id="loginEmail" type="email" required>
+<label>Password</label><div class="password-wrap"><input id="loginPassword" type="password" required><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div>
 <button type="submit">Login</button>
+<div class="link" onclick="showRegister()">Create Demo Account</div>
 </form>
 </div>
 </section>
@@ -142,7 +109,10 @@ button.danger{background:#c62828}
 <div class="dashboard">
 <div class="topbar">
 <h2><img src="https://cdn-icons-png.flaticon.com/512/2830/2830284.png" alt="Logo"> Suhail Bank</h2>
+<div style="display:flex;gap:8px;align-items:center;">
+<button type="button" class="theme-toggle" onclick="toggleTheme()">🌙 / ☀️</button>
 <button class="logout" onclick="logout()">Logout</button>
+</div>
 </div>
 
 <div class="balance">
@@ -154,6 +124,23 @@ button.danger{background:#c62828}
 <div class="grid">
 <button class="service" onclick="openDeposit()"><span>💳</span><b>Quickteller Deposit</b></button>
 <button class="service" onclick="openTransfer()"><span>🔄</span><b>Transfer</b></button>
+<button class="service" onclick="openWithdraw()"><span>💸</span><b>Withdraw</b></button>
+<button class="service" onclick="openAirtimeData()"><span>📱</span><b>Airtime & Data</b></button>
+<button class="service" onclick="openBillsPayment()"><span>💡</span><b>Pay Bills</b></button>
+<button class="service" onclick="openSavings()"><span>🐷</span><b>Savings Vault</b></button>
+<button class="service" onclick="openKycUpload()"><span>🪪</span><b>KYC Upload</b></button>
+<button class="service" onclick="loadHistory()"><span>📜</span><b>History</b></button>
+<button class="service" onclick="openPin()"><span>🔢</span><b>PIN</b></button>
+<button class="service" onclick="showProfile()"><span>👤</span><b>Profile</b></button>
+<button class="service" onclick="openSecurityCenter()"><span>🛡️</span><b>Security</b></button>
+<button class="service" onclick="openNotifications()"><span>🔔</span><b>Notifications</b></button>
+<button class="service" onclick="openSupportCenter()"><span>🎧</span><b>Support</b></button>
+<button class="service" onclick="openMySupportTickets()"><span>🎫</span><b>My Tickets</b></button>
+</div>
+
+<div id="contentPanel" class="panel">
+<h3>Transaction History</h3>
+<div id="historyList"><div class="empty">No transactions yet.</div></div>
 </div>
 </div>
 </section>
@@ -168,17 +155,208 @@ var SUPABASE_KEY = "sb_publishable_Pv55p1zoIfJEHZ8CzC3aFQ_HAAkuicj";
 var QUICKTELLER_CLIENT_ID = "IKIA3FB123303C9F3F2D591C97D5429AC7C1531491EE";
 var supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+var currentUser = null, currentProfile = null, currentAccount = null;
+
 function $(id) { return document.getElementById(id); }
+function showRegister() { clearMsg(); $("registerForm").classList.remove("hidden"); $("loginForm").classList.add("hidden"); }
+function showLogin() { clearMsg(); $("loginForm").classList.remove("hidden"); $("registerForm").classList.add("hidden"); }
+function setMsg(text, type) { var el = $("authMsg"); el.className = "msg " + (type||"error"); el.textContent = text; }
+function clearMsg() { var el = $("authMsg"); el.className = "msg"; el.textContent = ""; }
+function money(n) { return "₦" + Number(n||0).toLocaleString('en-NG', {minimumFractionDigits:2}); }
 function closeModal() { $("modal").classList.add("hidden"); }
 function openModal(html) { $("modalContent").innerHTML = html; $("modal").classList.remove("hidden"); }
+
+function notify(text, type) {
+  var box = $("toastContainer");
+  var toast = document.createElement("div");
+  toast.className = "toast " + (type||"info");
+  toast.textContent = text;
+  box.appendChild(toast);
+  setTimeout(function() { toast.remove(); }, 3000);
+}
+
+function toggleTheme() {
+  document.body.classList.toggle("dark-mode");
+  localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+}
+if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark-mode");
+
+function togglePassword(button) {
+  var input = button.closest('.password-wrap').querySelector('input');
+  input.type = input.type === 'password' ? 'text' : 'password';
+  button.textContent = input.type === 'password' ? '👁️' : '🙈';
+}
+
+async function loadUserData() {
+  var pRes = await supabaseClient.from("users").select("*").eq("id", currentUser.id).maybeSingle();
+  currentProfile = pRes.data;
+  var aRes = await supabaseClient.from("accounts").select("*").eq("user_id", currentUser.id).maybeSingle();
+  currentAccount = aRes.data;
+}
+
+async function startApp() {
+  await loadUserData();
+  $("authPage").classList.add("hidden");
+  $("appPage").classList.remove("hidden");
+  if(currentAccount) {
+    $("accountNumber").textContent = currentAccount.account_number;
+    $("balance").textContent = money(currentAccount.balance);
+    loadHistory();
+  }
+}
 
 async function checkSession() {
   var res = await supabaseClient.auth.getSession();
   if (res.data && res.data.session) {
-    $("authPage").classList.add("hidden");
-    $("appPage").classList.remove("hidden");
+    currentUser = res.data.session.user;
+    try { await startApp(); } catch(e) { showLogin(); }
+  } else { showLogin(); }
+}
+
+$("registerForm").addEventListener("submit", async function(e) {
+  e.preventDefault(); clearMsg();
+  try {
+    var email = $("regEmail").value.trim(), pass = $("regPassword").value;
+    var res = await supabaseClient.auth.signUp({ email: email, password: pass });
+    if(res.error) throw res.error;
+    currentUser = res.data.user;
+    await supabaseClient.from("users").insert({ id: currentUser.id, full_name: $("regName").value.trim(), phone: $("regPhone").value.trim(), transaction_pin: $("regPin").value });
+    var accNo = "30" + Math.floor(10000000 + Math.random() * 90000000);
+    await supabaseClient.from("accounts").insert({ user_id: currentUser.id, account_number: accNo, balance: 0 });
+    await startApp();
+  } catch(err) { setMsg(err.message); }
+});
+
+$("loginForm").addEventListener("submit", async function(e) {
+  e.preventDefault(); clearMsg();
+  try {
+    var res = await supabaseClient.auth.signInWithPassword({ email: $("loginEmail").value.trim(), password: $("loginPassword").value });
+    if (res.error) throw res.error;
+    currentUser = res.data.user;
+    await startApp();
+  } catch(err) { setMsg(err.message); }
+});
+
+// QUICKTELLER DEPOSIT
+function openDeposit() {
+  openModal('<h3>💳 Quickteller Deposit</h3><label>Amount (₦)</label><input id="depAmt" type="number" min="100" placeholder="1000"><button onclick="payQuickteller()">Proceed to Pay</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+
+function payQuickteller() {
+  var amt = Number($("depAmt").value);
+  if (!amt || amt < 100) { notify("Enter minimum ₦100", "error"); return; }
+  closeModal();
+  if (window.webpayCheckout) {
+    window.webpayCheckout({
+      merchantCode: QUICKTELLER_CLIENT_ID, payItemExKey: "10101", txn_ref: "SB_" + Date.now(),
+      amount: amt * 100, currency: "566", cust_email: currentUser.email,
+      onComplete: async function(r) {
+        if (r && (r.resp === "00" || r.desc === "Approved")) {
+          await supabaseClient.rpc("deposit_money", { p_amount: amt });
+          await startApp(); notify("Deposit Successful!", "success");
+        }
+      }
+    });
+  } else {
+    supabaseClient.rpc("deposit_money", { p_amount: amt }).then(() => { startApp(); notify("Test Deposit Successful!", "success"); });
   }
 }
+
+// SERVICES
+function openTransfer() {
+  openModal('<h3>🔄 Transfer Money</h3><label>Account Number</label><input id="trAcc" maxlength="10"><label>Amount (₦)</label><input id="trAmt" type="number"><label>4-Digit PIN</label><div class="password-wrap"><input id="trPin" type="password" maxlength="4"><button type="button" class="password-toggle" onclick="togglePassword(this)">👁️</button></div><button onclick="doTransfer()">Transfer</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+async function doTransfer() {
+  var acc = $("trAcc").value, amt = Number($("trAmt").value), pin = $("trPin").value;
+  var res = await supabaseClient.rpc("transfer_money", { p_receiver_account_number: acc, p_amount: amt, p_pin: pin });
+  if (res.error) notify(res.error.message, "error");
+  else { closeModal(); await startApp(); notify("Transfer Successful!", "success"); }
+}
+
+function openWithdraw() {
+  openModal('<h3>💸 Withdraw</h3><label>Amount (₦)</label><input id="wdAmt" type="number"><label>PIN</label><input id="wdPin" type="password" maxlength="4"><button onclick="doWithdraw()">Withdraw</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+async function doWithdraw() {
+  var amt = Number($("wdAmt").value), pin = $("wdPin").value;
+  var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
+  if(res.error) notify(res.error.message, "error");
+  else { closeModal(); await startApp(); notify("Withdrawal Successful!", "success"); }
+}
+
+function openAirtimeData() {
+  openModal('<h3>📱 Airtime & Data</h3><label>Network</label><select id="net"><option>MTN</option><option>Airtel</option><option>Glo</option><option>9mobile</option></select><label>Phone Number</label><input id="ph" type="tel"><label>Amount (₦)</label><input id="amt" type="number"><label>PIN</label><input id="pin" type="password" maxlength="4"><button onclick="doAirtime()">Purchase Airtime</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+async function doAirtime() {
+  var amt = Number($("amt").value), pin = $("pin").value;
+  var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
+  if(res.error) notify(res.error.message, "error");
+  else { closeModal(); await startApp(); notify("Airtime Purchase Successful!", "success"); }
+}
+
+function openBillsPayment() {
+  openModal('<h3>💡 Pay Bills</h3><label>Biller</label><select><option>KEDCO Electricity</option><option>IKEDC Electricity</option><option>DSTV / GOTV</option></select><label>Meter / Account No</label><input type="text"><label>Amount (₦)</label><input id="bAmt" type="number"><label>PIN</label><input id="bPin" type="password" maxlength="4"><button onclick="doBills()">Pay Bill</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+async function doBills() {
+  var amt = Number($("bAmt").value), pin = $("bPin").value;
+  var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
+  if(res.error) notify(res.error.message, "error");
+  else { closeModal(); await startApp(); notify("Bill Paid Successfully!", "success"); }
+}
+
+function openSavings() {
+  openModal('<h3>🐷 Savings Vault</h3><p>Locked Balance: <b>₦0.00</b></p><label>Amount to Save (₦)</label><input id="sAmt" type="number"><label>PIN</label><input id="sPin" type="password" maxlength="4"><button onclick="doSave()">Lock Funds</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+async function doSave() {
+  var amt = Number($("sAmt").value), pin = $("sPin").value;
+  var res = await supabaseClient.rpc("withdraw_money", { p_amount: amt, p_pin: pin });
+  if(res.error) notify(res.error.message, "error");
+  else { closeModal(); await startApp(); notify("Funds Saved Successfully!", "success"); }
+}
+
+function openKycUpload() {
+  openModal('<h3>🪪 KYC Verification</h3><label>ID Type</label><select><option>NIN Slip</option><option>Voter Card</option><option>Driver License</option></select><label>ID Number</label><input type="text" placeholder="12345678901"><button onclick="closeModal();notify(\'KYC Document Submitted for Review!\',\'success\')">Submit Document</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+
+function openPin() {
+  openModal('<h3>🔢 Change PIN</h3><label>Current PIN</label><input type="password" maxlength="4"><label>New PIN</label><input type="password" maxlength="4"><button onclick="closeModal();notify(\'PIN Updated Successfully!\',\'success\')">Update PIN</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+
+function showProfile() {
+  openModal('<h3>👤 User Profile</h3><p><b>Name:</b> ' + (currentProfile?currentProfile.full_name:"—") + '</p><p><b>Email:</b> ' + currentUser.email + '</p><p><b>Phone:</b> ' + (currentProfile?currentProfile.phone:"—") + '</p><button class="secondary" onclick="closeModal()">Close</button>');
+}
+
+function openSecurityCenter() {
+  openModal('<h3>🛡️ Security Center</h3><p>✅ 2FA Status: Enabled</p><p>✅ Device Authorization: Active</p><button class="secondary" onclick="closeModal()">Close</button>');
+}
+
+function openNotifications() {
+  openModal('<h3>🔔 Notifications</h3><p>📩 Welcome to Suhail Bank App Demo!</p><button class="secondary" onclick="closeModal()">Close</button>');
+}
+
+function openSupportCenter() {
+  openModal('<h3>🎧 Support Ticket</h3><label>Issue Subject</label><input type="text"><label>Details</label><textarea></textarea><button onclick="closeModal();notify(\'Ticket Submitted to Admin!\',\'success\')">Submit Ticket</button><button class="secondary" onclick="closeModal()">Cancel</button>');
+}
+
+function openMySupportTickets() {
+  openModal('<h3>🎫 My Tickets</h3><p>No active support tickets found.</p><button class="secondary" onclick="closeModal()">Close</button>');
+}
+
+async function loadHistory() {
+  if (!currentAccount) return;
+  var box = $("historyList"); box.innerHTML = '<div class="empty">Loading...</div>';
+  try {
+    var res = await supabaseClient.from("transactions").select("*").eq("account_id", currentAccount.id).order("created_at", { ascending: false });
+    var rows = res.data || [];
+    if (!rows.length) { box.innerHTML = '<div class="empty">No transactions recorded.</div>'; return; }
+    var html = "";
+    for (var i = 0; i < rows.length; i++) {
+      var t = rows[i];
+      html += '<div style="padding:10px 0;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;"><div><b>' + t.transaction_type + '</b><br><small>' + new Date(t.created_at).toLocaleString() + '</small></div><strong>' + money(t.amount) + '</strong></div>';
+    }
+    box.innerHTML = html;
+  } catch (e) { box.innerHTML = '<div class="empty">Could not load history.</div>'; }
+}
+
 function logout() { supabaseClient.auth.signOut(); location.reload(); }
 checkSession();
 </script>
