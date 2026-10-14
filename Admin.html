@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suhail Bank | Admin Panel</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --green: #087f5b;
+  --dark: #102820;
+  --bg: #f3f7f5;
+  --red: #b42318;
+  --border: #e2e9e5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: #20332b;
+}
+
+header {
+  background: var(--dark);
+  color: white;
+  padding: 22px;
+}
+
+header h1 {
+  margin: 0 0 7px;
+  font-size: 23px;
+}
+
+header p {
+  margin: 0;
+  color: #c7ded4;
+  font-size: 13px;
+}
+
+.container {
+  max-width: 1150px;
+  margin: auto;
+  padding: 16px;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 18px;
+  margin-bottom: 17px;
+  box-shadow: 0 3px 12px #00000008;
+}
+
+h2 {
+  font-size: 18px;
+  margin: 0 0 15px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  margin: 12px 0 6px;
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccd8d1;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 13px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  background: var(--green);
+  color: white;
+  margin: 4px 3px 4px 0;
+}
+
+button.secondary {
+  background: #e7f3ed;
+  color: var(--green);
+}
+
+button.danger {
+  background: var(--red);
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  background: #eaf5ef;
+  padding: 16px;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+
+.stat small {
+  display: block;
+  color: #526b5e;
+  margin-bottom: 10px;
+}
+
+.stat strong {
+  font-size: 23px;
+}
+
+.status {
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff5dc;
+  color: #775600;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  background: #ffebee;
+  color: #a4161a;
+}
+
+.success {
+  background: #e5f6eb;
+  color: #176b37;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 680px;
+  font-size: 13px;
+}
+
+th, td {
+  padding: 11px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+th {
+  background: #f0f5f2;
+}
+
+.note {
+  color: #64756c;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.pill {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 99px;
+  background: #e7f3ed;
+  color: #087f5b;
+  font-size: 11px;
+}
+
+.pill.suspended {
+  background: #ffebee;
+  color: #a4161a;
+}
+
+footer {
+  text-align: center;
+  color: #65766d;
+  font-size: 12px;
+  padding: 20px;
+}
+
+@media(max-width:650px) {
+  .grid { grid-template-columns: 1fr; }
+  .container { padding: 12px; }
+  header h1 { font-size: 20px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🏦 Suhail Bank</h1>
+  <p>Secure Administration Dashboard</p>
+</header>
+
+<main class="container">
+
+  <div id="message" class="status">
+    Ana haɗawa da Supabase...
+  </div>
+
+  <!-- ADMIN LOGIN -->
+  <section id="loginSection" class="card hidden">
+    <h2>🔐 Admin Login</h2>
+
+    <p class="note">
+      Shiga da Supabase account ɗinka. Dole ne database
+      ya tabbatar da cewa kana da izinin admin.
+    </p>
+
+    <form id="loginForm">
+      <label for="email">Email Address</label>
+      <input
+        id="email"
+        type="email"
+        autocomplete="username"
+        required
+        placeholder="Admin email"
+      >
+
+      <label for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        autocomplete="current-password"
+        required
+        placeholder="Password"
+      >
+
+      <button id="loginBtn" type="submit">
+        Login Securely
+      </button>
+    </form>
+  </section>
+
+  <!-- ADMIN DASHBOARD -->
+  <section id="dashboard" class="hidden">
+
+    <div class="card">
+      <h2>Admin Control Center</h2>
+
+      <p id="adminEmail" class="note"></p>
+
+      <button id="refreshBtn">🔄 Refresh Data</button>
+      <button id="logoutBtn" class="danger">Logout</button>
+    </div>
+
+    <div class="grid">
+
+      <div class="stat">
+        <small>Users Found</small>
+        <strong id="usersCount">—</strong>
+      </div>
+
+      <div class="stat">
+        <small>Accounts Found</small>
+        <strong id="accountsCount">—</strong>
+      </div>
+
+      <div class="stat">
+        <small>Transactions Found</small>
+        <strong id="transactionsCount">—</strong>
+      </div>
+
+    </div>
+
+    <!-- USER MANAGEMENT -->
+    <div class="card" style="margin-top:17px">
+      <h2>👥 User Management</h2>
+
+      <label for="userSearch">Search users</label>
+
+      <input
+        id="userSearch"
+        type="search"
+        placeholder="Name, phone or user ID"
+      >
+
+      <button id="searchUsersBtn">Search Users</button>
+
+      <button id="allUsersBtn" class="secondary">
+        Show All Loaded Users
+      </button>
+
+      <div class="table-wrap" style="margin-top:15px">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>User ID</th>
+            </tr>
+          </thead>
+
+          <tbody id="usersTable">
+            <tr>
+              <td colspan="3">Babu bayanai tukuna.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ACCOUNT MANAGEMENT -->
+    <div class="card">
+      <h2>💳 Account Management</h2>
+
+      <p class="note">
+        Suspend da Reactivate suna canza account status ne kawai.
+        Ba sa canza balance. Dole ne deposit, transfer da withdrawal
+        functions su duba status kafin su amince da transaction.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Account Number</th>
+              <th>User ID</th>
+              <th>Balance</th>
+              <th>Currency</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody id="accountsTable">
+            <tr>
+              <td colspan="6">Babu bayanai tukuna.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TRANSACTION AUDIT -->
+    <div class="card">
+      <h2>📋 Transaction Audit</h2>
+
+      <p class="note">
+        Ana nuna transactions da Supabase ya ba wannan session
+        izinin karantawa kawai.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Transaction ID</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+
+          <tbody id="transactionsTable">
+            <tr>
+              <td colspan="5">Babu bayanai tukuna.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div class="card">
+      <h2>🛡️ Security Center</h2>
+
+      <p id="securityStatus" class="note">
+        Ana jiran tabbatar da izini.
+      </p>
+
+      <p class="note">
+        Wannan dashboard yana amfani da Supabase Publishable Key.
+        Kada ka saka service_role key a HTML ko GitHub.
+      </p>
+    </div>
+
+  </section>
+
+</main>
+
+<footer>
+  Suhail Bank Admin Panel · Demo Version
+</footer>
+
+<script>
+"use strict";
+
+/* SUPABASE CONFIGURATION */
+
+const SUPABASE_URL =
+  "https://pqtoiotxgswilizibslo.supabase.co";
+
+const SUPABASE_KEY =
+  "sb_publishable_Pv55p1zoIfJEHZ8CzC3aFQ_HAAkuicj";
+
+const client = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
+);
+
+const $ = id => document.getElementById(id);
+
+let loadedUsers = [];
+let loadedAccounts = [];
+let loadedTransactions = [];
+let adminVerified = false;
+
+
+/* GENERAL HELPERS */
+
+function showMessage(text, type = "") {
+  const el = $("message");
+
+  el.textContent = text;
+  el.className = "status";
+
+  if (type === "error") el.classList.add("error");
+  if (type === "success") el.classList.add("success");
+}
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function formatMoney(value, currency = "NGN") {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) return "—";
+
+  try {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: currency || "NGN",
+      maximumFractionDigits: 2
+    }).format(number);
+  } catch {
+    return String(number);
+  }
+}
+
+function renderRows(tableId, html, emptyMessage, columns) {
+  $(tableId).innerHTML = html.length
+    ? html.join("")
+    : `<tr><td colspan="${columns}">${escapeHTML(emptyMessage)}</td></tr>`;
+}
+
+function showLogin() {
+  $("loginSection").classList.remove("hidden");
+  $("dashboard").classList.add("hidden");
+}
+
+function showDashboard() {
+  $("loginSection").classList.add("hidden");
+  $("dashboard").classList.remove("hidden");
+}
+
+
+/* VERIFY ADMIN ON SUPABASE */
+
+async function verifyAdmin() {
+  adminVerified = false;
+
+  const { data, error } = await client.auth.getSession();
+
+  if (error) throw error;
+
+  const session = data.session;
+
+  if (!session) {
+    showLogin();
+    showMessage("Ka shiga da admin account ɗinka.");
+    return false;
+  }
+
+  $("adminEmail").textContent =
+    "Signed in: " + (session.user.email || "Authenticated user");
+
+  const [kyc, support] = await Promise.all([
+    client.rpc("is_kyc_admin"),
+    client.rpc("is_support_admin")
+  ]);
+
+  if (kyc.error || support.error) {
+    showLogin();
+
+    showMessage(
+      "Ba a iya tabbatar da izinin admin ba: " +
+      (kyc.error?.message || support.error?.message),
+      "error"
+    );
+
+    return false;
+  }
+
+  if (kyc.data !== true && support.data !== true) {
+    showLogin();
+
+    showMessage(
+      "An hana shiga: wannan account ba shi da izinin admin.",
+      "error"
+    );
+
+    await client.auth.signOut();
+
+    return false;
+  }
+
+  adminVerified = true;
+  showDashboard();
+
+  $("securityStatus").textContent =
+    "Admin permission verified by Supabase.";
+
+  return true;
+}
+
+
+/* LOAD USERS */
+
+async function loadUsers() {
+  const { data, error } = await client
+    .from("users")
+    .select("id, full_name, phone")
+    .order("full_name", { ascending: true })
+    .limit(200);
+
+  if (error) throw error;
+
+  loadedUsers = data || [];
+
+  $("usersCount").textContent = loadedUsers.length;
+
+  renderUsers(loadedUsers);
+}
+
+function renderUsers(users) {
+  const html = users.map(user => `
+    <tr>
+      <td>${escapeHTML(user.full_name || "—")}</td>
+      <td>${escapeHTML(user.phone || "—")}</td>
+      <td>${escapeHTML(user.id)}</td>
+    </tr>
+  `);
+
+  renderRows("usersTable", html, "Ba a sami users ba.", 3);
+}
+
+
+/* LOAD ACCOUNTS */
+
+async function loadAccounts() {
+  const { data, error } = await client
+    .from("accounts")
+    .select("id, account_number, user_id, balance, currency, status")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  if (error) throw error;
+
+  loadedAccounts = data || [];
+
+  $("accountsCount").textContent = loadedAccounts.length;
+
+  const html = loadedAccounts.map(account => {
+    const suspended = account.status === "suspended";
+
+    return `
+      <tr>
+        <td>${escapeHTML(account.account_number)}</td>
+        <td>${escapeHTML(account.user_id)}</td>
+        <td>${escapeHTML(formatMoney(account.balance, account.currency))}</td>
+        <td>${escapeHTML(account.currency || "NGN")}</td>
+        <td>
+          <span class="pill ${suspended ? "suspended" : ""}">
+            ${escapeHTML(account.status || "unknown")}
+          </span>
+        </td>
+        <td>
+          <button
+            class="${suspended ? "" : "danger"}"
+            data-account-id="${escapeHTML(account.id)}"
+            data-next-status="${suspended ? "active" : "suspended"}"
+            ${adminVerified ? "" : "disabled"}>
+            ${suspended ? "Reactivate" : "Suspend"}
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+
+  renderRows("accountsTable", html, "Ba a sami accounts ba.", 6);
+
+  $("accountsTable")
+    .querySelectorAll("button[data-account-id]")
+    .forEach(button => {
+      button.addEventListener("click", () => {
+        changeAccountStatus(button);
+      });
+    });
+}
+
+
+/* SUSPEND OR REACTIVATE */
+
+async function changeAccountStatus(button) {
+  if (!adminVerified) return;
+
+  const accountId = button.dataset.accountId;
+  const nextStatus = button.dataset.nextStatus;
+
+  const account = loadedAccounts.find(a => a.id === accountId);
+
+  if (!account) return;
+
+  const action = nextStatus === "suspended"
+    ? "dakatar da"
+    : "sake kunna";
+
+  const confirmed = confirm(
+    `Kana son ${action} account ${account.account_number}? ` +
+    "Wannan aikin ba zai canza balance ba."
+  );
+
+  if (!confirmed) return;
+
+  button.disabled = true;
+
+  showMessage("Ana aika buƙata zuwa Supabase...");
+
+  try {
+    const { data, error } = await client.rpc(
+      "admin_set_account_status",
+      {
+        p_account_id: accountId,
+        p_new_status: nextStatus
+      }
+    );
+
+    if (error) throw error;
+
+    if (!data || data.success !== true) {
+      throw new Error("Supabase bai tabbatar da nasarar canjin ba.");
+    }
+
+    showMessage(
+      nextStatus === "suspended"
+        ? "An dakatar da account."
+        : "An sake kunna account.",
+      "success"
+    );
+
+    await loadAccounts();
+
+  } catch (error) {
+    showMessage(
+      "Ba a canza account ba: " +
+      (error.message || "Unknown error"),
+      "error"
+    );
+
+    button.disabled = false;
+  }
+}
+
+
+/* LOAD TRANSACTIONS */
+
+async function loadTransactions() {
+  const { data, error } = await client
+    .from("transactions")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    $("transactionsCount").textContent = "—";
+
+    renderRows(
+      "transactionsTable",
+      [],
+      "Ba a ba admin izinin ganin transactions: " + error.message,
+      5
+    );
+
+    return;
+  }
+
+  loadedTransactions = data || [];
+
+  $("transactionsCount").textContent = loadedTransactions.length;
+
+  const html = loadedTransactions.map(tx => `
+    <tr>
+      <td>${escapeHTML(tx.id ?? tx.transaction_id ?? "—")}</td>
+      <td>${escapeHTML(tx.transaction_type ?? tx.type ?? "—")}</td>
+      <td>${escapeHTML(formatMoney(tx.amount, tx.currency || "NGN"))}</td>
+      <td>${escapeHTML(tx.status ?? "—")}</td>
+      <td>
+        ${escapeHTML(
+          tx.created_at
+            ? new Date(tx.created_at).toLocaleString()
+            : "—"
+        )}
+      </td>
+    </tr>
+  `);
+
+  renderRows("transactionsTable", html, "Babu transactions.", 5);
+}
+
+
+/* REFRESH DASHBOARD */
+
+async function refreshDashboard() {
+  if (!adminVerified) return;
+
+  showMessage("Ana ɗauko bayanai daga Supabase...");
+
+  const results = await Promise.allSettled([
+    loadUsers(),
+    loadAccounts(),
+    loadTransactions()
+  ]);
+
+  const errors = results
+    .filter(result => result.status === "rejected")
+    .map(result => result.reason?.message || "Unknown error");
+
+  if (errors.length) {
+    showMessage(
+      "Wasu bayanai ba su buɗe ba: " + errors.join(" | "),
+      "error"
+    );
+  } else {
+    showMessage(
+      "An sabunta bayanan dashboard.",
+      "success"
+    );
+  }
+}
+
+
+/* LOGIN */
+
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  $("loginBtn").disabled = true;
+
+  showMessage("Ana tabbatar da login...");
+
+  try {
+    const email = $("email").value.trim();
+    const password = $("password").value;
+
+    const { error } = await client.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) throw error;
+
+    const allowed = await verifyAdmin();
+
+    if (allowed) {
+      await refreshDashboard();
+    }
+
+  } catch (error) {
+    showMessage(
+      error.message || "Login failed.",
+      "error"
+    );
+  } finally {
+    $("loginBtn").disabled = false;
+  }
+});
+
+
+/* BUTTONS */
+
+$("refreshBtn").addEventListener("click", refreshDashboard);
+
+$("logoutBtn").addEventListener("click", async () => {
+  await client.auth.signOut();
+
+  adminVerified = false;
+
+  showLogin();
+
+  showMessage("An fita daga admin account.");
+});
+
+$("searchUsersBtn").addEventListener("click", () => {
+  if (!adminVerified) return;
+
+  const query = $("userSearch").value.trim().toLowerCase();
+
+  const filtered = loadedUsers.filter(user =>
+    [user.full_name, user.phone, user.id].some(value =>
+      String(value || "").toLowerCase().includes(query)
+    )
+  );
+
+  renderUsers(filtered);
+});
+
+$("allUsersBtn").addEventListener("click", () => {
+  if (!adminVerified) return;
+
+  $("userSearch").value = "";
+
+  renderUsers(loadedUsers);
+});
+
+
+/* INITIALIZE */
+
+(async function initialize() {
+  try {
+    const allowed = await verifyAdmin();
+
+    if (allowed) {
+      await refreshDashboard();
+    }
+  } catch (error) {
+    showLogin();
+
+    showMessage(
+      "Matsalar fara Admin Panel: " +
+      (error.message || "Unknown error"),
+      "error"
+    );
+  }
+})();
+</script>
+
+</body>
+</html>
